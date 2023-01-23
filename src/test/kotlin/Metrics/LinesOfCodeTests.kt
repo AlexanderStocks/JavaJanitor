@@ -1,4 +1,0 @@
-package Metrics
-
-class LinesOfCodeTests {
-}

@@ -21,7 +21,6 @@ fun main() {
 
     launcher.model.processWith(RemoveEmptyElseStatementsProcessor())
 
-
     println("Final print")
     launcher.prettyprint()
     git.removeRepo()
@@ -44,7 +43,7 @@ fun classes(model: CtModel) {
     classes.forEach { println(it.simpleName) }
 }
 
-fun numClasses(model: CtModel)  {
+fun numClasses(model: CtModel) {
     println("Modules = ${model.allModules}")
     println("Packages = ${model.allPackages}")
     println("Types = ${model.allTypes}")

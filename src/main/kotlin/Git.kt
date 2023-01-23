@@ -12,13 +12,12 @@ class Git(private val repositoryURI: String) {
 
     private val git = cloneRepo(repositoryURI)
 
-    val projectName : String
+    val projectName: String
         get() = repositoryURI.substringAfterLast("/")
 
-    private fun cloneRepo(repositoryURI: String) : Git {
+    private fun cloneRepo(repositoryURI: String): Git {
         return Git.cloneRepository().setURI(repositoryURI).call()
     }
-
 
     fun removeRepo() {
         git.repository.close()
@@ -26,16 +25,15 @@ class Git(private val repositoryURI: String) {
         path.toFile().deleteRecursively()
     }
 
-
-    fun getCommitRevisions() : Iterable<RevCommit> {
+    fun getCommitRevisions(): Iterable<RevCommit> {
         return git.log().all().call()
     }
 
-    fun getLastCommit() : ObjectId {
+    fun getLastCommit(): ObjectId {
         return git.repository.resolve(Constants.HEAD)
     }
 
-    fun readFileFromCommit(id : ObjectId, file : String) : ByteArray? {
+    fun readFileFromCommit(id: ObjectId, file: String): ByteArray? {
         val tree = RevWalk(git.repository).parseCommit(id).tree
         val treeWalk = TreeWalk(git.repository)
         treeWalk.addTree(tree)
@@ -48,7 +46,7 @@ class Git(private val repositoryURI: String) {
         return null
     }
 
-    fun listTree(id : ObjectId) {
+    fun listTree(id: ObjectId) {
         val tree = RevWalk(git.repository).parseCommit(id).tree
         val treeWalk = TreeWalk(git.repository)
         treeWalk.addTree(tree)

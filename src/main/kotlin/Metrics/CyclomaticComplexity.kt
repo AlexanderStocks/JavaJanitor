@@ -1,14 +1,11 @@
 package Metrics
 
+import spoon.processing.AbstractProcessor
 import spoon.reflect.code.*
 import spoon.reflect.declaration.CtClass
 import spoon.reflect.declaration.CtMethod
-import spoon.reflect.visitor.filter.TypeFilter
 
-class CyclomaticComplexity : Metric {
-    override fun calculate(element: CtClass<*>): Int {
-        return element.getElements(TypeFilter(CtMethod::class.java)).sumOf { calculateMethod(it) }
-    }
+class CyclomaticComplexity : AbstractProcessor<CtClass<*>>() {
 
     private fun calculateMethod(ctMethod: CtMethod<*>): Int {
         // Initial complexity is 1 for the method itself
@@ -21,5 +18,9 @@ class CyclomaticComplexity : Metric {
             }
         }
         return complexity
+    }
+
+    override fun process(element: CtClass<*>?) {
+        //return element.getElements(TypeFilter(CtMethod::class.java)).sumOf { calculateMethod(it) }
     }
 }
