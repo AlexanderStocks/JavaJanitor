@@ -1,8 +1,9 @@
-import Refactorings.RemoveEmptyElseStatementsProcessor
 import spoon.Launcher
 import spoon.reflect.CtModel
+import spoon.reflect.code.CtComment
 import spoon.reflect.declaration.CtClass
 import spoon.reflect.visitor.filter.TypeFilter
+import java.io.File
 
 //val commit = git.getLastCommit()
 //val bytes = git.readFileFromCommit(commit,"src/Test.java")
@@ -15,15 +16,43 @@ fun main() {
     launcher.addInputResource(git.projectName)
     launcher.buildModel()
 
+    val classes = launcher.model.getElements(TypeFilter<CtClass<Any>>(CtClass::class.java))
+    classes.forEach {
+        it.addComment<CtComment>(
+            it.factory.Code()
+                .createComment(
+                    "ProjectStructure: ${File(it.position.file.path).relativeTo(File(git.projectName).absoluteFile).path}",
+                    CtComment.CommentType.INLINE
+                )
+        )
+        print(it.comments)
+    }
     //println("Lines of real code = ${LinesOfCode().calculate(launcher.model)}")
     //launcher.model.getElements(TypeFilter(CtClass::class.java)).forEach { println(LinesOfCode().calculate(it)) }
-    println("First print")
-
-    launcher.model.processWith(RemoveEmptyElseStatementsProcessor())
-
-    println("Final print")
     launcher.prettyprint()
+
+    //launcher.model.processWith(RemoveEmptyElseStatementsProcessor())
+    //launcher.environment.setShouldCompile(false)
+    //launcher.setSourceOutputDirectory(git.projectName)
+    //launcher.modelBuilder.generateProcessedSourceFiles(OutputType.)
+
+    //val spoonOutputDirectory = File("spooned")
+
+//    spoonOutputDirectory.walk().forEach { file ->
+//        if (file.isFile) {
+//            val packageName =
+//                file.toURI().toString().replace(spoonOutputDirectory.toURI().toString(), "").replace("/", ".")
+//                    .removeSuffix(".java")
+//            val packageDir = packageName.replace(".", "/")
+//            val originalFile = File("${git.projectName}/$packageDir/${file.name}")
+//            if (originalFile.exists()) {
+//                originalFile.delete()
+//            }
+//            file.renameTo(originalFile)
+//        }
+//    }
     git.removeRepo()
+
 }
 
 //fun removeEmptyElseStatements(element: CtClass<*>) {
