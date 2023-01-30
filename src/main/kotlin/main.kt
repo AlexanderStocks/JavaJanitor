@@ -1,9 +1,12 @@
+import Refactorings.RemoveEmptyElseStatementsProcessor
+import org.eclipse.jdt.core.compiler.InvalidInputException
 import spoon.Launcher
 import spoon.reflect.CtModel
 import spoon.reflect.code.CtComment
 import spoon.reflect.declaration.CtClass
 import spoon.reflect.visitor.filter.TypeFilter
 import java.io.File
+import java.io.FileWriter
 
 //val commit = git.getLastCommit()
 //val bytes = git.readFileFromCommit(commit,"src/Test.java")
@@ -14,45 +17,80 @@ fun main() {
 
     val launcher = Launcher()
     launcher.addInputResource(git.projectName)
+    launcher.factory.environment.setCommentEnabled(true)
     launcher.buildModel()
 
-    val classes = launcher.model.getElements(TypeFilter<CtClass<Any>>(CtClass::class.java))
+    addStructureToClasses(git.projectName, launcher)
+    //////////////////////////////////////////Do Refactoring//////////////////////////////////////////////////
+    // println("Lines of real code = ${LinesOfCode().calculate(launcher.model)}")
+    // launcher.model.getElements(TypeFilter(CtClass::class.java)).forEach { println(LinesOfCode().calculate(it)) }
+
+    launcher.model.processWith(RemoveEmptyElseStatementsProcessor())
+
+
+    /////////////////////////////////////////Write changes to repo////////////////////////////////////
+
+    try {
+        replaceModifiedFiles(git.projectName, launcher)
+    } catch (e: InvalidInputException) {
+        println("Replacing modified files failed: ${e.message}")
+    }
+
+
+    //git.removeRepo()
+
+}
+
+fun isModified(str1: String, str2: String): Boolean {
+    val lines1 = str1.lines().filterNot { it.trim().startsWith("//") }
+    val lines2 = str2.lines().filterNot { it.trim().startsWith("//") }
+    return lines1.map { it.trim() } != lines2.map { it.trim() }
+}
+
+fun getStructureComment(ctClass: CtClass<*>): CtComment {
+    val comments = ctClass.comments.filter { it.content.startsWith("ProjectStructure:") }
+    if (comments.size != 1) {
+        throw InvalidInputException("File ${ctClass.simpleName} has multiple ProjectStructure comments.")
+    }
+    return comments[0]
+}
+
+fun getAndRemoveComment(ctClass: CtClass<*>): CtComment {
+    val comment = getStructureComment(ctClass)
+    ctClass.removeComment<CtComment>(comment)
+
+    return comment
+}
+
+fun replaceModifiedFiles(projectName: String, launcher: Launcher) {
+    launcher.model.getElements(TypeFilter(CtClass::class.java))
+        .forEach { ctClass ->
+            val comment = getAndRemoveComment(ctClass)
+            val updatedFile = ctClass.prettyprint()
+            val originalFile = ctClass.position.file.toString()
+
+            if (!updatedFile.equals(originalFile)) {
+                val fileToReplace = File("$projectName/${comment.content.substring("ProjectStructure:".length).trim()}")
+                val fileWriter = FileWriter(fileToReplace)
+
+                fileWriter.write(updatedFile)
+                fileWriter.close()
+            }
+        }
+}
+
+
+fun addStructureToClasses(projectName: String, launcher: Launcher) {
+    val classes = launcher.model.getElements(TypeFilter(CtClass::class.java))
     classes.forEach {
         it.addComment<CtComment>(
             it.factory.Code()
                 .createComment(
-                    "ProjectStructure: ${File(it.position.file.path).relativeTo(File(git.projectName).absoluteFile).path}",
+                    "ProjectStructure: ${File(it.position.file.path).relativeTo(File(projectName).absoluteFile).path}",
                     CtComment.CommentType.INLINE
                 )
         )
-        print(it.comments)
     }
-    //println("Lines of real code = ${LinesOfCode().calculate(launcher.model)}")
-    //launcher.model.getElements(TypeFilter(CtClass::class.java)).forEach { println(LinesOfCode().calculate(it)) }
-    launcher.prettyprint()
-
-    //launcher.model.processWith(RemoveEmptyElseStatementsProcessor())
-    //launcher.environment.setShouldCompile(false)
-    //launcher.setSourceOutputDirectory(git.projectName)
-    //launcher.modelBuilder.generateProcessedSourceFiles(OutputType.)
-
-    //val spoonOutputDirectory = File("spooned")
-
-//    spoonOutputDirectory.walk().forEach { file ->
-//        if (file.isFile) {
-//            val packageName =
-//                file.toURI().toString().replace(spoonOutputDirectory.toURI().toString(), "").replace("/", ".")
-//                    .removeSuffix(".java")
-//            val packageDir = packageName.replace(".", "/")
-//            val originalFile = File("${git.projectName}/$packageDir/${file.name}")
-//            if (originalFile.exists()) {
-//                originalFile.delete()
-//            }
-//            file.renameTo(originalFile)
-//        }
-//    }
-    git.removeRepo()
-
 }
 
 //fun removeEmptyElseStatements(element: CtClass<*>) {
