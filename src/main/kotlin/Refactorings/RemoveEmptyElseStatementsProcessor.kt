@@ -8,7 +8,7 @@ class RemoveEmptyElseStatementsProcessor : AbstractProcessor<CtIf>() {
     override fun process(element: CtIf?) {
         element ?: return
         element.getElseStatement<CtStatement>()?.let { elseStatement ->
-            if (!elseStatement.isImplicit) {
+            if (!elseStatement.isImplicit && elseStatement.directChildren.isEmpty()) {
                 element.setElseStatement<CtIf>(null)
             }
         }
