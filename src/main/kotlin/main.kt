@@ -1,3 +1,4 @@
+import Metrics.LinesOfCode
 import Refactorings.RemoveEmptyElseStatementsProcessor
 import org.eclipse.jdt.core.compiler.InvalidInputException
 import spoon.Launcher
@@ -11,8 +12,38 @@ import java.io.FileWriter
 //val commit = git.getLastCommit()
 //val bytes = git.readFileFromCommit(commit,"src/Test.java")
 //val temp = File.createTempFile("temp", "java")
-
+import io.ktor.server.application.*
+import io.ktor.server.request.*
+import io.ktor.server.response.*
+import io.ktor.server.routing.*
+import io.ktor.server.engine.*
+import io.ktor.server.netty.*
 fun main() {
+//    val git = Git("https://github.com/AlexanderStocks/Test-IncreaseCyclomaticComplexityByCommit")
+//    val gh = GitHub.connectAnonymously()
+
+    val server = embeddedServer(Netty, port = 4567) {
+        routing {
+            post("/") {
+
+                val body = call.receiveText()
+                println("Received webhook: $body")
+                call.respondText("Hello, world!")
+            }
+            post("/webhook") {
+                val body = call.receiveText()
+                // Handle the webhook request here
+                call.respondText("Received webhook: $body")
+            }
+        }
+    }
+    server.start(wait = true)
+
+    // Get repository
+
+}
+
+fun jgitStuff() {
     val git = Git("https://github.com/AlexanderStocks/Test-IncreaseCyclomaticComplexityByCommit")
 
     val launcher = Launcher()
@@ -21,11 +52,14 @@ fun main() {
     launcher.buildModel()
 
     addStructureToClasses(git.projectName, launcher)
+
     //////////////////////////////////////////Do Refactoring//////////////////////////////////////////////////
-    // println("Lines of real code = ${LinesOfCode().calculate(launcher.model)}")
-    // launcher.model.getElements(TypeFilter(CtClass::class.java)).forEach { println(LinesOfCode().calculate(it)) }
+    //println("Lines of real code = ${LinesOfCode().calculate(launcher.model)}")
+    launcher.model.getElements(TypeFilter(CtClass::class.java)).forEach { println(LinesOfCode().calculate(it)) }
 
     launcher.model.processWith(RemoveEmptyElseStatementsProcessor())
+    Thread.sleep(1000)
+    launcher.model.getElements(TypeFilter(CtClass::class.java)).forEach { println(LinesOfCode().calculate(it)) }
 
 
     /////////////////////////////////////////Write changes to repo////////////////////////////////////
@@ -37,8 +71,7 @@ fun main() {
     }
 
 
-    //git.removeRepo()
-
+    git.removeRepo()
 }
 
 fun isModified(str1: String, str2: String): Boolean {
@@ -66,8 +99,8 @@ fun replaceModifiedFiles(projectName: String, launcher: Launcher) {
     launcher.model.getElements(TypeFilter(CtClass::class.java))
         .forEach { ctClass ->
             val comment = getAndRemoveComment(ctClass)
-            val updatedFile = ctClass.prettyprint()
             val originalFile = ctClass.position.file.toString()
+            val updatedFile = ctClass.prettyprint()
 
             if (!updatedFile.equals(originalFile)) {
                 val fileToReplace = File("$projectName/${comment.content.substring("ProjectStructure:".length).trim()}")
