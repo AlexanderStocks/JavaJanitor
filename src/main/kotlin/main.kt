@@ -1,4 +1,6 @@
-import Metrics.LinesOfCode
+import Metrics.Metric.CyclomaticComplexity
+import Metrics.Metric.LinesOfCode
+import Metrics.Model.Dataset
 import Refactorings.RemoveEmptyElseStatementsProcessor
 import org.eclipse.jdt.core.compiler.InvalidInputException
 import spoon.Launcher
@@ -21,7 +23,26 @@ import io.ktor.server.netty.*
 fun main() {
 //    val git = Git("https://github.com/AlexanderStocks/Test-IncreaseCyclomaticComplexityByCommit")
 //    val gh = GitHub.connectAnonymously()
+    val git = Git("https://github.com/AlexanderStocks/Test-IncreaseCyclomaticComplexityByCommit")
 
+    val launcher = Launcher()
+    launcher.addInputResource(git.projectName)
+    launcher.environment.setCommentEnabled(true)
+    launcher.buildModel()
+
+
+    launcher.addProcessor(LinesOfCode())
+    launcher.addProcessor(CyclomaticComplexity())
+
+    launcher.process()
+
+    Dataset.generateCSVFile("report")
+
+    // Get repository
+
+}
+
+fun webHooks() {
     val server = embeddedServer(Netty, port = 4567) {
         routing {
             post("/") {
@@ -38,9 +59,6 @@ fun main() {
         }
     }
     server.start(wait = true)
-
-    // Get repository
-
 }
 
 fun jgitStuff() {
@@ -55,11 +73,9 @@ fun jgitStuff() {
 
     //////////////////////////////////////////Do Refactoring//////////////////////////////////////////////////
     //println("Lines of real code = ${LinesOfCode().calculate(launcher.model)}")
-    launcher.model.getElements(TypeFilter(CtClass::class.java)).forEach { println(LinesOfCode().calculate(it)) }
 
     launcher.model.processWith(RemoveEmptyElseStatementsProcessor())
     Thread.sleep(1000)
-    launcher.model.getElements(TypeFilter(CtClass::class.java)).forEach { println(LinesOfCode().calculate(it)) }
 
 
     /////////////////////////////////////////Write changes to repo////////////////////////////////////
