@@ -1,18 +1,7 @@
 package Metrics.Model
 
-import java.util.*
-
 class Suite(private var classQualifiedName: String) {
-    val measures: Collection<Measure> = Vector()
-
-    fun getClassQualifiedName(): String {
-        return classQualifiedName
-    }
-
-    fun setClassQualifiedName(classQualifiedName: String) {
-        this.classQualifiedName = classQualifiedName
-    }
-
+    val measures: List<Measure> = mutableListOf()
 
     fun addMeasure(measure: Measure) {
         if (measures.stream().filter { m -> m.metric.shortName == measure.metric.shortName }.count() == 0L) {
@@ -21,7 +10,7 @@ class Suite(private var classQualifiedName: String) {
     }
 
     fun toCSV(): String {
-        val buffer = StringBuffer(classQualifiedName)
+        val buffer = StringBuilder(classQualifiedName)
 
         for (measure in measures) {
             buffer.append(";")
@@ -29,5 +18,4 @@ class Suite(private var classQualifiedName: String) {
         }
         return buffer.toString()
     }
-
 }

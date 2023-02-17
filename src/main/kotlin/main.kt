@@ -1,6 +1,5 @@
-import Metrics.Metric.CyclomaticComplexity
-import Metrics.Metric.LinesOfCode
-import Metrics.Model.Dataset
+
+import Refactorings.RemoveDeadCodeProcessor
 import Refactorings.RemoveEmptyElseStatementsProcessor
 import org.eclipse.jdt.core.compiler.InvalidInputException
 import spoon.Launcher
@@ -30,34 +29,25 @@ fun main() {
     launcher.environment.setCommentEnabled(true)
     launcher.buildModel()
 
+    addStructureToClasses(git.projectName, launcher)
 
-    launcher.addProcessor(LinesOfCode())
-    launcher.addProcessor(CyclomaticComplexity())
+    launcher.addProcessor(RemoveDeadCodeProcessor())
 
     launcher.process()
 
-    Dataset.generateCSVFile("report")
+    //Dataset.generateCSVFile("report")
 
+    try {
+        replaceModifiedFiles(git.projectName, launcher)
+    } catch (e: InvalidInputException) {
+        println("Replacing modified files failed: ${e.message}")
+    }
     // Get repository
 
 }
 
 fun webHooks() {
-    val server = embeddedServer(Netty, port = 4567) {
-        routing {
-            post("/") {
-
-                val body = call.receiveText()
-                println("Received webhook: $body")
-                call.respondText("Hello, world!")
-            }
-            post("/webhook") {
-                val body = call.receiveText()
-                // Handle the webhook request here
-                call.respondText("Received webhook: $body")
-            }
-        }
-    }
+    val server = embeddedServer(Netty, port = 4567, module = Application::ListenToGithubApp)
     server.start(wait = true)
 }
 
@@ -163,4 +153,20 @@ fun numClasses(model: CtModel) {
     println("Modules = ${model.allModules}")
     println("Packages = ${model.allPackages}")
     println("Types = ${model.allTypes}")
+}
+
+fun Application.ListenToGithubApp() {
+    routing {
+        post("/") {
+
+            val body = call.receiveText()
+            println("Received webhook: $body")
+            call.respondText("Hello, world!")
+        }
+        post("/webhook") {
+            val body = call.receiveText()
+            // Handle the webhook request here
+            call.respondText("Received webhook: $body")
+        }
+    }
 }

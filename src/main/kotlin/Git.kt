@@ -2,7 +2,6 @@ import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.api.errors.GitAPIException
 import org.eclipse.jgit.lib.Constants
 import org.eclipse.jgit.lib.ObjectId
-import org.eclipse.jgit.revwalk.RevCommit
 import org.eclipse.jgit.revwalk.RevWalk
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider
 import org.eclipse.jgit.treewalk.TreeWalk
@@ -10,16 +9,13 @@ import org.eclipse.jgit.treewalk.filter.PathFilter
 import java.nio.file.Path
 import java.nio.file.Paths
 
-class Git(private val repositoryURI: String) {
+class Git(repositoryURI: String) {
 
     private val git = cloneRepo(repositoryURI)
 
-    val projectName: String
-        get() = repositoryURI.substringAfterLast("/")
+    val projectName: String = repositoryURI.substringAfterLast("/")
 
-    private fun cloneRepo(repositoryURI: String): Git {
-        return Git.cloneRepository().setURI(repositoryURI).call()
-    }
+    private fun cloneRepo(repositoryURI: String) = Git.cloneRepository().setURI(repositoryURI).call()
 
     fun createCommitAndPushToGitHub(commitMessage: String) {
         try {
@@ -35,9 +31,8 @@ class Git(private val repositoryURI: String) {
     }
 
 
-    fun forkRepository(forkURI: String): Git {
-        return Git.cloneRepository().setURI(forkURI).setBranch("master").call()
-    }
+    fun forkRepository(forkURI: String) = Git.cloneRepository().setURI(forkURI).setBranch("master").call()
+
 
     fun removeRepo() {
         git.repository.close()
@@ -45,20 +40,19 @@ class Git(private val repositoryURI: String) {
         path.toFile().deleteRecursively()
     }
 
-    fun getCommitRevisions(): Iterable<RevCommit> {
-        return git.log().all().call()
-    }
+    fun getCommitRevisions() = git.log().all().call()
 
-    fun getLastCommit(): ObjectId {
-        return git.repository.resolve(Constants.HEAD)
-    }
+
+    fun getLastCommit() = git.repository.resolve(Constants.HEAD)
+
 
     fun readFileFromCommit(id: ObjectId, file: String): ByteArray? {
         val tree = RevWalk(git.repository).parseCommit(id).tree
-        val treeWalk = TreeWalk(git.repository)
-        treeWalk.addTree(tree)
-        treeWalk.isRecursive = true
-        treeWalk.filter = PathFilter.create(file)
+        val treeWalk = TreeWalk(git.repository).apply {
+            addTree(tree)
+            isRecursive = true
+            filter = PathFilter.create(file)
+        }
 
         if (treeWalk.next()) {
             return git.repository.open(treeWalk.getObjectId(0)).bytes
@@ -68,9 +62,10 @@ class Git(private val repositoryURI: String) {
 
     fun listTree(id: ObjectId) {
         val tree = RevWalk(git.repository).parseCommit(id).tree
-        val treeWalk = TreeWalk(git.repository)
-        treeWalk.addTree(tree)
-        treeWalk.isRecursive = true
+        val treeWalk = TreeWalk(git.repository).apply {
+            addTree(tree)
+            isRecursive = true
+        }
 
         while (treeWalk.next()) {
             println("found ${treeWalk.pathString}")

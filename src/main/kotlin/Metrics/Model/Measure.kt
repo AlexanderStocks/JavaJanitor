@@ -1,4 +1,3 @@
 package Metrics.Model
 
-class Measure(val metric: Metric, val value: Double) {
-}
+data class Measure(val metric: Metric, val value: Double)

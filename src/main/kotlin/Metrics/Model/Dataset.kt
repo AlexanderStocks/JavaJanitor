@@ -27,7 +27,7 @@ object Dataset {
         suite.addMeasure(measure)
     }
 
-    fun list(): Collection<Suite> = dataset.values
+    fun list() = dataset.values
 
     fun clear() {
         dataset.clear()
@@ -51,17 +51,16 @@ object Dataset {
 //    }
 
     fun toCSV(): String {
-        val buffer = StringBuffer("CLASS_QNAME")
-        list().first().measures.forEach { measure ->
-            buffer.append(";")
-            buffer.append(measure.metric.shortName)
+        return buildString {
+            append("CLASS_QNAME")
+            list().firstOrNull()?.measures?.joinToString(separator = ";") { measure ->
+                ";${measure.metric.shortName}"
+            }?.let { append(it) }
+            list().forEach { suite ->
+                append("\n")
+                append(suite.toCSV())
+            }
         }
-
-        for (suite in list()) {
-            buffer.append("\n")
-            buffer.append(suite.toCSV())
-        }
-        return buffer.toString()
     }
 
 //    fun generateCSVFile(datasetName: String?) {
@@ -108,7 +107,7 @@ object Dataset {
 
         val calendar = Calendar.getInstance()
         val dateFormat = SimpleDateFormat("yyyy-MM-dd-HH-mm-ss").apply { timeZone = calendar.timeZone }
-        val reportName = StringBuffer()
+        val reportName = StringBuilder()
 
         if (datasetName == null || datasetName.isEmpty().not()) {
             reportName.append(datasetName)
