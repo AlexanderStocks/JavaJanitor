@@ -17,19 +17,6 @@ class Git(repositoryURI: String) {
 
     private fun cloneRepo(repositoryURI: String) = Git.cloneRepository().setURI(repositoryURI).call()
 
-    fun createCommitAndPushToGitHub(commitMessage: String) {
-        try {
-            val git = Git(git.repository)
-            git.add().addFilepattern(".").call()
-            git.commit().setMessage(commitMessage).call()
-            val pushCommand =
-                git.push().setCredentialsProvider(UsernamePasswordCredentialsProvider("username", "password"))
-            pushCommand.call()
-        } catch (e: GitAPIException) {
-            println("Error occurred while creating commit and pushing to GitHub: ${e.message}")
-        }
-    }
-
 
     fun forkRepository(forkURI: String) = Git.cloneRepository().setURI(forkURI).setBranch("master").call()
 

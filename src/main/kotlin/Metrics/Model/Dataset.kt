@@ -113,10 +113,11 @@ object Dataset {
             reportName.append(datasetName)
             reportName.append("-")
         }
-
-        reportName.append("dataset-")
-        reportName.append(dateFormat.format(calendar.time))
-        reportName.append(".csv")
+        reportName.apply {
+            append("dataset-")
+            append(dateFormat.format(calendar.time))
+            append(".csv")
+        }
 
         val fullReportName = reportName.toString()
 
