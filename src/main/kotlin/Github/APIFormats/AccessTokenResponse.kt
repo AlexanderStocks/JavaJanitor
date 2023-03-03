@@ -1,4 +1,4 @@
-package Github.ResponseFormats
+package Github.APIFormats
 
 data class AccessTokenResponse(
     val token: String,

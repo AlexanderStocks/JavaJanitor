@@ -1,21 +1,10 @@
-import Github.ResponseFormats.*
-import com.auth0.jwt.JWT
+import Github.APIFormats.*
 import com.auth0.jwt.algorithms.Algorithm
 import com.google.gson.Gson
-import com.sksamuel.hoplite.fp.invalid
-import io.ktor.client.*
-import io.ktor.client.call.*
-import io.ktor.client.engine.apache.*
-import io.ktor.client.request.*
-import io.ktor.client.statement.*
-import io.ktor.http.*
-import io.ktor.http.content.*
 
 import org.bouncycastle.openssl.PEMKeyPair
 import org.bouncycastle.openssl.PEMParser
 import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter
-import org.kohsuke.github.GHPullRequest
-import org.kohsuke.github.GHRepository
 import org.kohsuke.github.GitHub
 import org.kohsuke.github.GitHubBuilder
 import java.io.BufferedOutputStream

@@ -23,8 +23,7 @@ class RefactoringService(private val repoName: String) {
     }
 
     private fun addStructureToClasses() {
-        val classes = launcher.model.getElements(TypeFilter(CtClass::class.java))
-        classes.forEach {
+        launcher.model.getElements(TypeFilter(CtClass::class.java)).forEach {
             it.addComment<CtComment>(
                 it.factory.Code()
                     .createComment(

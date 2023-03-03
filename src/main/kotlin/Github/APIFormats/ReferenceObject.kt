@@ -1,4 +1,4 @@
-package Github.ResponseFormats
+package Github.APIFormats
 
 import kotlinx.serialization.Serializable
 

@@ -1,4 +1,4 @@
-package Github.ResponseFormats
+package Github.APIFormats
 
 data class InitialiseEvent(
     val action: String,

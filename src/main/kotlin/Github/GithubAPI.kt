@@ -1,9 +1,9 @@
 package Github
 
 import App.Companion.extractZipFile
-import Github.ResponseFormats.AccessTokenResponse
-import Github.ResponseFormats.Branch
-import Github.ResponseFormats.RepositoryContents
+import Github.APIFormats.AccessTokenResponse
+import Github.APIFormats.Branch
+import Github.APIFormats.RepositoryContents
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import com.google.gson.Gson
@@ -45,7 +45,6 @@ class GithubAPI {
 
     fun createPullRequest(
         accessToken: String,
-        baseUrl: String,
         owner: String,
         repo: String,
         title: String,
@@ -53,7 +52,7 @@ class GithubAPI {
         head: String,
         base: String
     ) {
-        val apiUrl = "$baseUrl/repos/$owner/$repo/pulls"
+        val apiUrl = "/repos/$owner/$repo/pulls"
         val messageBody = "{\"title\":\"$title\",\"body\":\"$body\",\"head\":\"$head\",\"base\":\"$base\"}"
 
         val request = buildRequest(apiUrl, HttpMethod.Post, accessToken, messageBody)
@@ -68,8 +67,8 @@ class GithubAPI {
         }
     }
 
-    fun getFileContent(accessToken: String, baseUrl: String, owner: String, repo: String, path: String): RepositoryContents {
-        val url = "$baseUrl/repos/$owner/$repo/contents/$path"
+    fun getFileContent(accessToken: String, owner: String, repo: String, path: String): RepositoryContents {
+        val url = "/repos/$owner/$repo/contents/$path"
         val request = buildRequest(url, HttpMethod.Get, accessToken)
         val response = runBlocking{ client.request(request).bodyAsText() }
         return Gson().fromJson(response, RepositoryContents::class.java)
@@ -85,8 +84,7 @@ class GithubAPI {
         accessToken: String,
         branch: String
     ): String {
-        val baseUrl = "https://api.github.com"
-        val contentUrl = "$baseUrl/repos/$owner/$repo/contents/$path"
+        val contentUrl = "/repos/$owner/$repo/contents/$path"
         val requestBody = "{\"message\":\"$message\",\"content\":\"$content\",\"sha\":\"$sha\", \"branch\":\"$branch\"}"
 
         val request = buildRequest(contentUrl, HttpMethod.Put, accessToken, requestBody)
@@ -99,11 +97,11 @@ class GithubAPI {
                      shaToBranchFrom: String,
                      accessToken: String
     ) {
-        val gitRefUrl = "$baseUrl/repos/$owner/$repo/git/refs"
+        val gitRefUrl = "/repos/$owner/$repo/git/refs"
         val requestBody = "{\"ref\":\"refs/heads/${newBranchName}\",\"sha\":\"$shaToBranchFrom\"}"
 
 
-        val request = buildRequest(gitRefUrl, HttpMethod.Put, accessToken, requestBody)
+        val request = buildRequest(gitRefUrl, HttpMethod.Post, accessToken, requestBody)
         val response = runBlocking { client.request(request).bodyAsText() }
         println("created branch $response")
         //return Gson().fromJson(response, Array<Branch>::class.java)
@@ -114,17 +112,17 @@ class GithubAPI {
         repo: String,
         accessToken: String
     ): List<Branch> {
-        val branchesUrl = "$baseUrl/repos/$owner/$repo/branches"
+        val branchesUrl = "/repos/$owner/$repo/branches"
 
-        val request = buildRequest(branchesUrl, HttpMethod.Put, accessToken)
+        val request = buildRequest(branchesUrl, HttpMethod.Get, accessToken)
         val response = runBlocking { client.request(request).bodyAsText() }
         return Gson().fromJson(response, Array<Branch>::class.java ).toList()
     }
 
-    fun cloneRepo(accessToken :String, baseUrl : String, owner: String, repo: String, outputDir: String): String? {
-        val tokenUrl = "$baseUrl/repos/$owner/$repo/zipball"
+    fun cloneRepo(accessToken :String, owner: String, repo: String, outputDir: String): String? {
+        val tokenUrl = "/repos/$owner/$repo/zipball"
 
-        val request = buildRequest(tokenUrl, HttpMethod.Put, accessToken)
+        val request = buildRequest(tokenUrl, HttpMethod.Get, accessToken)
 
         val response = runBlocking { client.request(request) }
 
