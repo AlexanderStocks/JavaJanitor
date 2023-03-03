@@ -1,4 +1,4 @@
-package Github
+package Github.ResponseFormats
 
 data class User (
     val login: String,

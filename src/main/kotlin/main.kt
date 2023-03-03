@@ -1,8 +1,13 @@
+
 import App.Companion.createGitHubClient
-import App.Companion.fetchAccessToken
+
+import App.Companion.getRelativePathToParentDirectory
+import App.Companion.javaFileToBase64
 import App.Companion.loadPrivateKey
 import App.Companion.parseWebhookPayload
 import Github.CredentialsLoader
+import Github.GithubAPI
+import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
@@ -11,7 +16,7 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.kohsuke.github.GHRepository
-import java.io.IOException
+import java.io.File
 import java.security.Security
 import kotlin.system.exitProcess
 
@@ -34,36 +39,43 @@ fun Application.ListenToGithubApp() {
         post("/") {
             val body = call.receiveText()
             val payload = parseWebhookPayload(body)
-            println("payload $payload")
-            val installationAccessToken = fetchAccessToken(baseUrl, appId, algorithm, payload.installation.id)
-            println("installationAccessToken $installationAccessToken")
-
+            val githubAPI = GithubAPI()
+            val installationAccessToken = githubAPI.fetchAccessToken(baseUrl, appId, algorithm, payload.installation.id)
             val github = createGitHubClient(installationAccessToken)
-            println("github $github")
-
             val originalRepo = github.getRepository(payload.repositories.first().full_name)
-            println("originalRepo $originalRepo")
+            val branches = githubAPI.getBranches(originalRepo.ownerName, originalRepo.name, installationAccessToken)
 
-            val forkedRepo :GHRepository
+            val mainBranch = branches.find { it.name == "main" }
+            if (mainBranch != null) {
+                println("Commit SHA for main branch: ${mainBranch.commit.sha}")
+            } else {
+                println("Main branch not found.")
+                exitProcess(-1)
+            }
+            val newBranchName = "RefactoringJanitor"
 
-//            try {
-//                forkedRepo = originalRepo.fork()
-//
-//            } catch (err: IOException) {
-//                println("err $err")
-//                exitProcess(1)
-//            }
-            println(originalRepo.fullName)
-            val localRepo = Git("https://github.com/" + originalRepo.fullName)
-            println("localRepo $localRepo")
+            githubAPI.createBranch(originalRepo.ownerName, originalRepo.name, newBranchName, mainBranch.commit.sha, installationAccessToken)
 
-            val refactoringService = RefactoringService(localRepo)
-            refactoringService.refactor()
+            val repoName = githubAPI.cloneRepo(installationAccessToken, baseUrl, originalRepo.ownerName, originalRepo.name, "src/main/resources")
+            val repoPath = "src/main/resources/${repoName?.removeSuffix(".zip")}"
 
-            //val pullRequest = createPullRequest()
+            val refactoringService = RefactoringService(repoPath)
 
-            //localRepo.removeRepo()
-            call.respondText("Received webhook: $payload")
+            val modifiedFiles = refactoringService.refactor()
+            val modifiedFile = modifiedFiles.first()
+            val modifiedFileRelativePath = getRelativePathToParentDirectory(modifiedFile.path, repoPath).replace("\\", "/")
+
+            val contents = githubAPI.getFileContent(installationAccessToken, baseUrl, originalRepo.ownerName, originalRepo.name, modifiedFileRelativePath)
+            val updateResponse = githubAPI.updateContent(originalRepo.ownerName, originalRepo.name, modifiedFileRelativePath, "Test commit", javaFileToBase64(modifiedFile), contents.sha, installationAccessToken, newBranchName)
+
+            githubAPI.createPullRequest(installationAccessToken, baseUrl, originalRepo.ownerName, originalRepo.name, "Refactoring Janitor refactorings", "very nice changes", newBranchName, "main")
+
+            //val forkResponse = forkRepository(originalRepo.ownerName, originalRepo.name, "RefactoringJanitor", true, installationAccessToken)
+
+            File(repoPath).deleteRecursively()
+
+
+            call.respond(HttpStatusCode.OK)
         }
     }
 }

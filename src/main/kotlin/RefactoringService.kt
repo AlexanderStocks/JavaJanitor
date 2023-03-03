@@ -7,19 +7,19 @@ import spoon.reflect.visitor.filter.TypeFilter
 import java.io.File
 import java.io.FileWriter
 
-class RefactoringService(private val git: Git) {
+class RefactoringService(private val repoName: String) {
     private val launcher = Launcher()
 
     init {
-        launcher.addInputResource(git.projectName)
+        launcher.addInputResource(repoName)
         launcher.factory.environment.setCommentEnabled(true)
         launcher.buildModel()
     }
 
-    fun refactor() {
+    fun refactor(): List<File> {
         addStructureToClasses()
         launcher.model.processWith(RemoveEmptyElseStatementsProcessor())
-        replaceModifiedFiles()
+        return replaceModifiedFiles()
     }
 
     private fun addStructureToClasses() {
@@ -28,28 +28,30 @@ class RefactoringService(private val git: Git) {
             it.addComment<CtComment>(
                 it.factory.Code()
                     .createComment(
-                        "ProjectStructure: ${File(it.position.file.path).relativeTo(File(git.projectName).absoluteFile).path}",
+                        "ProjectStructure: ${File(it.position.file.path).relativeTo(File(repoName).absoluteFile).path}",
                         CtComment.CommentType.INLINE
                     )
             )
         }
     }
 
-    private fun replaceModifiedFiles() {
+    private fun replaceModifiedFiles(): List<File> {
+        val modifiedFiles = mutableListOf<File>()
         launcher.model.getElements(TypeFilter(CtClass::class.java)).forEach { ctClass ->
             val comment = getAndRemoveComment(ctClass)
             val originalFile = ctClass.position.file.toString()
             val updatedFile = ctClass.prettyprint()
 
             if (isModified(originalFile, updatedFile)) {
-                val fileToReplace =
-                    File("${git.projectName}/${comment.content.substring("ProjectStructure:".length).trim()}")
+                val fileToReplace = File("${repoName}/${comment.content.substring("ProjectStructure:".length).trim()}")
                 val fileWriter = FileWriter(fileToReplace)
 
                 fileWriter.write(updatedFile)
                 fileWriter.close()
+                modifiedFiles.add(fileToReplace)
             }
         }
+        return modifiedFiles
     }
 
     private fun getStructureComment(ctClass: CtClass<*>): CtComment {

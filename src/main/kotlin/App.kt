@@ -1,14 +1,16 @@
-import Github.AccessTokenResponse
-import Github.InitialiseEvent
+import Github.ResponseFormats.*
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import com.google.gson.Gson
+import com.sksamuel.hoplite.fp.invalid
 import io.ktor.client.*
+import io.ktor.client.call.*
 import io.ktor.client.engine.apache.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
-import kotlinx.coroutines.runBlocking
+import io.ktor.http.content.*
+
 import org.bouncycastle.openssl.PEMKeyPair
 import org.bouncycastle.openssl.PEMParser
 import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter
@@ -16,9 +18,14 @@ import org.kohsuke.github.GHPullRequest
 import org.kohsuke.github.GHRepository
 import org.kohsuke.github.GitHub
 import org.kohsuke.github.GitHubBuilder
+import java.io.BufferedOutputStream
+import java.io.File
+import java.io.FileOutputStream
 import java.io.FileReader
+import java.nio.file.Paths
 import java.security.interfaces.RSAPrivateKey
 import java.util.*
+import java.util.zip.ZipFile
 import kotlin.system.exitProcess
 
 class App {
@@ -40,32 +47,6 @@ class App {
             }
         }
 
-        fun fetchAccessToken(baseUrl: String, appId: String, algorithm: Algorithm, installationId: Int): String {
-            val tokenUrl = "$baseUrl/app/installations/$installationId/access_tokens"
-            val jwtToken = createJwtToken(appId, algorithm)
-            val accessTokenResponse = getAccessToken(tokenUrl, jwtToken)
-            return accessTokenResponse.token
-        }
-
-        fun createJwtToken(appId: String, algorithm: Algorithm): String {
-            return JWT.create()
-                .withIssuer(appId)
-                .withIssuedAt(Date(System.currentTimeMillis() - 500000))
-                .withExpiresAt(Date(System.currentTimeMillis() + 500000))
-                .sign(algorithm)
-        }
-
-        fun getAccessToken(tokenUrl: String, jwtToken: String): AccessTokenResponse {
-            val client = HttpClient(Apache)
-            val httpRequestBuilder = HttpRequestBuilder()
-            httpRequestBuilder.url(tokenUrl)
-            httpRequestBuilder.method = HttpMethod.Post
-            httpRequestBuilder.contentType(ContentType.Application.Json)
-            httpRequestBuilder.header(HttpHeaders.Authorization, "Bearer $jwtToken")
-            httpRequestBuilder.accept(ContentType.Application.Json)
-            val body = runBlocking { client.request(httpRequestBuilder).bodyAsText() }
-            return Gson().fromJson(body, AccessTokenResponse::class.java )
-        }
 
         fun createGitHubClient(installationAccessToken: String): GitHub {
             return GitHubBuilder()
@@ -73,10 +54,39 @@ class App {
                 .build()
         }
 
-        fun createPullRequest(repo: GHRepository): GHPullRequest {
-            val pullRequestTitle = "Automatic pull request"
-            val pullRequestBody = "This pull request was created automatically from a GitHub webhook"
-            return repo.createPullRequest(pullRequestTitle, "main", "main", pullRequestBody)
+        fun extractZipFile(zipFile: File, outputDir: String) {
+            val zip = ZipFile(zipFile)
+            val entries = zip.entries()
+            while (entries.hasMoreElements()) {
+                val entry = entries.nextElement()
+                val entryPath = entry.name.replace('\\', '/')
+                if (entry.isDirectory) {
+                    File(outputDir, entryPath).mkdirs()
+                } else {
+                    val entryIn = zip.getInputStream(entry)
+                    val entryOut = BufferedOutputStream(FileOutputStream(File(outputDir, entryPath)))
+                    entryIn.copyTo(entryOut)
+                    entryIn.close()
+                    entryOut.close()
+                }
+            }
+            zip.close()
+            zipFile.deleteRecursively()
         }
+
+        fun javaFileToBase64(file: File): String {
+            val bytes = file.readBytes()
+            return Base64.getEncoder().encodeToString(bytes)
+        }
+
+        fun getRelativePathToParentDirectory(file: String, parentDir: String): String {
+            val filePath = Paths.get(file)
+            val parentPath = Paths.get(parentDir)
+            return parentPath.relativize(filePath).toString()
+        }
+
+
     }
+
+
 }
