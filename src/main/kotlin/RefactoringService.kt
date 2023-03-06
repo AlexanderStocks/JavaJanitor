@@ -1,4 +1,4 @@
-import Refactorings.RemoveEmptyElseStatementsProcessor
+import Refactorings.RemoveDeadCodeProcessor
 import org.eclipse.jdt.core.compiler.InvalidInputException
 import spoon.Launcher
 import spoon.reflect.code.CtComment
@@ -18,7 +18,7 @@ class RefactoringService(private val repoName: String) {
 
     fun refactor(): List<File> {
         addStructureToClasses()
-        launcher.model.processWith(RemoveEmptyElseStatementsProcessor())
+        launcher.model.processWith(RemoveDeadCodeProcessor())
         return replaceModifiedFiles()
     }
 

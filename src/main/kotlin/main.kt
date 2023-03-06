@@ -1,6 +1,4 @@
-
 import App.Companion.createGitHubClient
-
 import App.Companion.getRelativePathToParentDirectory
 import App.Companion.javaFileToBase64
 import App.Companion.loadPrivateKey
@@ -62,27 +60,68 @@ fun Application.ListenToGithubApp() {
             }
             val newBranchName = "RefactoringJanitor"
 
-            githubAPI.createBranch(originalRepo.ownerName, originalRepo.name, newBranchName, mainBranch.commit.sha, installationAccessToken)
-            val repoName = githubAPI.cloneRepo(installationAccessToken, originalRepo.ownerName, originalRepo.name, "src/main/resources")
+            githubAPI.createBranch(
+                originalRepo.ownerName,
+                originalRepo.name,
+                newBranchName,
+                mainBranch.commit.sha,
+                installationAccessToken
+            )
+            val repoName = githubAPI.cloneRepo(
+                installationAccessToken,
+                originalRepo.ownerName,
+                originalRepo.name,
+                "src/main/resources"
+            )
             val repoPath = "src/main/resources/${repoName?.removeSuffix(".zip")}"
             println("cloned")
 
             val refactoringService = RefactoringService(repoPath)
 
             val modifiedFiles = refactoringService.refactor()
-            println("refactored")
+            println("refactored $modifiedFiles")
 
-//            val modifiedFile = modifiedFiles.first()
-//            val modifiedFileRelativePath = getRelativePathToParentDirectory(modifiedFile.path, repoPath).replace("\\", "/")
-//
-//            val contents = githubAPI.getFileContent(installationAccessToken, baseUrl, originalRepo.ownerName, originalRepo.name, modifiedFileRelativePath)
-//            val updateResponse = githubAPI.updateContent(originalRepo.ownerName, originalRepo.name, modifiedFileRelativePath, "Test commit", javaFileToBase64(modifiedFile), contents.sha, installationAccessToken, newBranchName)
-//
-//            githubAPI.createPullRequest(installationAccessToken, baseUrl, originalRepo.ownerName, originalRepo.name, "Refactoring Janitor refactorings", "very nice changes", newBranchName, "main")
+            val modifiedFile = modifiedFiles.first()
+            val modifiedFileRelativePath =
+                getRelativePathToParentDirectory(modifiedFile.path, repoPath).replace("\\", "/")
 
-////            val forkResponse = forkRepository(originalRepo.ownerName, originalRepo.name, "RefactoringJanitor", true, installationAccessToken)
+            val contents = githubAPI.getFileContent(
+                installationAccessToken,
+                originalRepo.ownerName,
+                originalRepo.name,
+                modifiedFileRelativePath
+            )
 
-           // File(repoPath).deleteRecursively()
+            githubAPI.updateContent(
+                originalRepo.ownerName,
+                originalRepo.name,
+                modifiedFileRelativePath,
+                "Refactor",
+                javaFileToBase64(modifiedFile),
+                contents.sha,
+                installationAccessToken,
+                newBranchName
+            )
+
+            githubAPI.createPullRequest(
+                installationAccessToken,
+                originalRepo.ownerName,
+                originalRepo.name,
+                "Refactoring Janitor refactorings",
+                "very nice changes",
+                newBranchName,
+                "main"
+            )
+
+//            val forkResponse = forkRepository(
+//                originalRepo.ownerName,
+//                originalRepo.name,
+//                "RefactoringJanitor",
+//                true,
+//                installationAccessToken
+//            )
+
+            File(repoPath).deleteRecursively()
 
 
             call.respond(HttpStatusCode.OK)
