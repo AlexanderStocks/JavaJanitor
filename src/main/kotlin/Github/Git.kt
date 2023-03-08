@@ -1,4 +1,4 @@
-//import org.eclipse.jgit.api.Git
+package Github//import org.eclipse.jgit.api.Git
 //import org.eclipse.jgit.api.errors.GitAPIException
 //import org.eclipse.jgit.lib.Constants
 //import org.eclipse.jgit.lib.ObjectId

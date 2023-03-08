@@ -1,9 +1,9 @@
 package Github
 
-import App.Companion.extractZipFile
 import Github.APIFormats.AccessTokenResponse
 import Github.APIFormats.Branch
 import Github.APIFormats.RepositoryContents
+import Utils.Companion.extractZipFile
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import com.google.gson.Gson
@@ -23,7 +23,6 @@ class GithubAPI {
 
     private val client = HttpClient(Apache)
     private val baseUrl = "https://api.github.com"
-    private val gson = Gson()
 
     private fun buildRequest(
         url: String,
@@ -54,10 +53,7 @@ class GithubAPI {
     ) {
         val apiUrl = "/repos/$owner/$repo/pulls"
         val messageBody = "{\"title\":\"$title\",\"body\":\"$body\",\"head\":\"$head\",\"base\":\"$base\"}"
-
         val request = buildRequest(apiUrl, HttpMethod.Post, accessToken, messageBody)
-
-
         val response = runBlocking { client.request(request) }
 
         if (!response.status.isSuccess()) {
@@ -70,7 +66,7 @@ class GithubAPI {
     fun getFileContent(accessToken: String, owner: String, repo: String, path: String): RepositoryContents {
         val url = "/repos/$owner/$repo/contents/$path"
         val request = buildRequest(url, HttpMethod.Get, accessToken)
-        val response = runBlocking{ client.request(request).bodyAsText() }
+        val response = runBlocking { client.request(request).bodyAsText() }
         return Gson().fromJson(response, RepositoryContents::class.java)
     }
 
@@ -86,25 +82,23 @@ class GithubAPI {
     ): String {
         val contentUrl = "/repos/$owner/$repo/contents/$path"
         val requestBody = "{\"message\":\"$message\",\"content\":\"$content\",\"sha\":\"$sha\", \"branch\":\"$branch\"}"
-
         val request = buildRequest(contentUrl, HttpMethod.Put, accessToken, requestBody)
+
         return runBlocking { client.request(request).bodyAsText() }
     }
 
-    fun createBranch(owner: String,
-                     repo: String,
-                     newBranchName: String,
-                     shaToBranchFrom: String,
-                     accessToken: String
+    fun createBranch(
+        owner: String,
+        repo: String,
+        newBranchName: String,
+        shaToBranchFrom: String,
+        accessToken: String
     ) {
         val gitRefUrl = "/repos/$owner/$repo/git/refs"
         val requestBody = "{\"ref\":\"refs/heads/${newBranchName}\",\"sha\":\"$shaToBranchFrom\"}"
-
-
         val request = buildRequest(gitRefUrl, HttpMethod.Post, accessToken, requestBody)
         val response = runBlocking { client.request(request).bodyAsText() }
         println("created branch $response")
-        //return Gson().fromJson(response, Array<Branch>::class.java)
     }
 
     fun getBranches(
@@ -113,19 +107,16 @@ class GithubAPI {
         accessToken: String
     ): List<Branch> {
         val branchesUrl = "/repos/$owner/$repo/branches"
-
         val request = buildRequest(branchesUrl, HttpMethod.Get, accessToken)
         val response = runBlocking { client.request(request).bodyAsText() }
-        return Gson().fromJson(response, Array<Branch>::class.java ).toList()
+
+        return Gson().fromJson(response, Array<Branch>::class.java).toList()
     }
 
-    fun cloneRepo(accessToken :String, owner: String, repo: String, outputDir: String): String? {
+    fun cloneRepo(accessToken: String, owner: String, repo: String, outputDir: String): String? {
         val tokenUrl = "/repos/$owner/$repo/zipball"
-
         val request = buildRequest(tokenUrl, HttpMethod.Get, accessToken)
-
         val response = runBlocking { client.request(request) }
-
 
         if (response.status.isSuccess()) {
             val contentDisposition = response.headers[HttpHeaders.ContentDisposition]
@@ -156,13 +147,15 @@ class GithubAPI {
         httpRequestBuilder.header(HttpHeaders.Authorization, "Bearer $jwtToken")
         httpRequestBuilder.accept(ContentType.Application.Json)
         val body = runBlocking { client.request(httpRequestBuilder).bodyAsText() }
-        return Gson().fromJson(body, AccessTokenResponse::class.java )
+
+        return Gson().fromJson(body, AccessTokenResponse::class.java)
     }
 
     fun fetchAccessToken(baseUrl: String, appId: String, algorithm: Algorithm, installationId: Int): String {
         val tokenUrl = "$baseUrl/app/installations/$installationId/access_tokens"
         val jwtToken = createJwtToken(appId, algorithm)
         val accessTokenResponse = getAccessToken(tokenUrl, jwtToken)
+
         return accessTokenResponse.token
     }
 

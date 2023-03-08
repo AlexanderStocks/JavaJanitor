@@ -1,7 +1,6 @@
-import Github.APIFormats.*
+import Github.APIFormats.InitialiseEvent
 import com.auth0.jwt.algorithms.Algorithm
 import com.google.gson.Gson
-
 import org.bouncycastle.openssl.PEMKeyPair
 import org.bouncycastle.openssl.PEMParser
 import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter
@@ -17,7 +16,7 @@ import java.util.*
 import java.util.zip.ZipFile
 import kotlin.system.exitProcess
 
-class App {
+class Utils {
     companion object {
         fun loadPrivateKey(privateKeyPath: String): Algorithm {
             val pemParser = PEMParser(FileReader(privateKeyPath))
@@ -35,7 +34,6 @@ class App {
                 exitProcess(1)
             }
         }
-
 
         fun createGitHubClient(installationAccessToken: String): GitHub {
             return GitHubBuilder()
@@ -64,8 +62,7 @@ class App {
         }
 
         fun javaFileToBase64(file: File): String {
-            val bytes = file.readBytes()
-            return Base64.getEncoder().encodeToString(bytes)
+            return Base64.getEncoder().encodeToString(file.readBytes())
         }
 
         fun getRelativePathToParentDirectory(file: String, parentDir: String): String {
@@ -73,9 +70,5 @@ class App {
             val parentPath = Paths.get(parentDir)
             return parentPath.relativize(filePath).toString()
         }
-
-
     }
-
-
 }

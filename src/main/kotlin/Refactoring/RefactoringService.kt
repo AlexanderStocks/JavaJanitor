@@ -1,4 +1,6 @@
-import Refactorings.RemoveDeadCodeProcessor
+package Refactoring
+
+import Refactoring.Processors.RemoveDeadCodeProcessor
 import org.eclipse.jdt.core.compiler.InvalidInputException
 import spoon.Launcher
 import spoon.reflect.code.CtComment
