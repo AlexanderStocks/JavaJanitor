@@ -14,6 +14,7 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.http.content.*
+import io.ktor.server.http.content.*
 import kotlinx.coroutines.runBlocking
 import java.io.File
 import java.io.FileOutputStream
@@ -70,7 +71,7 @@ class GithubAPI {
     fun getFileContent(accessToken: String, owner: String, repo: String, path: String): RepositoryContents {
         val url = "/repos/$owner/$repo/contents/$path"
         val request = buildRequest(url, HttpMethod.Get, accessToken)
-        val response = runBlocking{ client.request(request).bodyAsText() }
+        val response = runBlocking { client.request(request).bodyAsText() }
         return Gson().fromJson(response, RepositoryContents::class.java)
     }
 
@@ -91,11 +92,12 @@ class GithubAPI {
         return runBlocking { client.request(request).bodyAsText() }
     }
 
-    fun createBranch(owner: String,
-                     repo: String,
-                     newBranchName: String,
-                     shaToBranchFrom: String,
-                     accessToken: String
+    fun createBranch(
+        owner: String,
+        repo: String,
+        newBranchName: String,
+        shaToBranchFrom: String,
+        accessToken: String
     ) {
         val gitRefUrl = "/repos/$owner/$repo/git/refs"
         val requestBody = "{\"ref\":\"refs/heads/${newBranchName}\",\"sha\":\"$shaToBranchFrom\"}"
@@ -116,10 +118,10 @@ class GithubAPI {
 
         val request = buildRequest(branchesUrl, HttpMethod.Get, accessToken)
         val response = runBlocking { client.request(request).bodyAsText() }
-        return Gson().fromJson(response, Array<Branch>::class.java ).toList()
+        return Gson().fromJson(response, Array<Branch>::class.java).toList()
     }
 
-    fun cloneRepo(accessToken :String, owner: String, repo: String, outputDir: String): String? {
+    fun cloneRepo(accessToken: String, owner: String, repo: String, outputDir: String): String? {
         val tokenUrl = "/repos/$owner/$repo/zipball"
 
         val request = buildRequest(tokenUrl, HttpMethod.Get, accessToken)
@@ -156,7 +158,7 @@ class GithubAPI {
         httpRequestBuilder.header(HttpHeaders.Authorization, "Bearer $jwtToken")
         httpRequestBuilder.accept(ContentType.Application.Json)
         val body = runBlocking { client.request(httpRequestBuilder).bodyAsText() }
-        return Gson().fromJson(body, AccessTokenResponse::class.java )
+        return Gson().fromJson(body, AccessTokenResponse::class.java)
     }
 
     fun fetchAccessToken(baseUrl: String, appId: String, algorithm: Algorithm, installationId: Int): String {
