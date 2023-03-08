@@ -1,10 +1,11 @@
-import App.Companion.createGitHubClient
-import App.Companion.getRelativePathToParentDirectory
-import App.Companion.javaFileToBase64
-import App.Companion.loadPrivateKey
-import App.Companion.parseWebhookPayload
 import Github.CredentialsLoader
 import Github.GithubAPI
+import Refactoring.RefactoringService
+import Utils.Companion.createGitHubClient
+import Utils.Companion.getRelativePathToParentDirectory
+import Utils.Companion.javaFileToBase64
+import Utils.Companion.loadPrivateKey
+import Utils.Companion.parseWebhookPayload
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
@@ -46,10 +47,10 @@ fun Application.ListenToGithubApp() {
             println("Created client")
 
             val originalRepo = github.getRepository(payload.repositories.first().full_name)
-            println("got vranches")
+            println("got repo")
 
             val branches = githubAPI.getBranches(originalRepo.ownerName, originalRepo.name, installationAccessToken)
-            println("got vranches")
+            println("got branches")
 
             val mainBranch = branches.find { it.name == "main" }
             if (mainBranch != null) {
@@ -73,6 +74,7 @@ fun Application.ListenToGithubApp() {
                 originalRepo.name,
                 "src/main/resources"
             )
+
             val repoPath = "src/main/resources/${repoName?.removeSuffix(".zip")}"
             println("cloned")
 
@@ -107,22 +109,13 @@ fun Application.ListenToGithubApp() {
                 installationAccessToken,
                 originalRepo.ownerName,
                 originalRepo.name,
-                "Refactoring Janitor refactorings",
+                "Refactoring Janitor Changes",
                 "very nice changes",
                 newBranchName,
                 "main"
             )
 
-//            val forkResponse = forkRepository(
-//                originalRepo.ownerName,
-//                originalRepo.name,
-//                "RefactoringJanitor",
-//                true,
-//                installationAccessToken
-//            )
-
             File(repoPath).deleteRecursively()
-
 
             call.respond(HttpStatusCode.OK)
         }

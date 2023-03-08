@@ -1,0 +1,4 @@
+GITHUB_BASE_URL: "https://api.github.com"
+GITHUB_APP_ID: "293544"
+GITHUB_APP_PRIVATE_KEY_PATH: "\\Users\\Alex\\certs\\refactoringjanitor.2023-02-14.private-key.pem"
+GITHUB_APP_WEBHOOK_SECRETS: "development"

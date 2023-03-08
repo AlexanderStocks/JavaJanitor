@@ -16,6 +16,7 @@ class Suite(private var classQualifiedName: String) {
             buffer.append(";")
             buffer.append(measure.value)
         }
+        
         return buffer.toString()
     }
 }
