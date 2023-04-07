@@ -17,7 +17,7 @@ class RemoveDeadCodeProcessor : AbstractProcessor<CtClass<*>>() {
         removeDeadMethods(ctClass)
     }
 
-
+    // TODO: Add removal of default modifier
     private fun removeDeadFields(ctClass: CtClass<*>) {
         val fieldReads = ctClass.getElements(TypeFilter(CtFieldRead::class.java))
             .mapNotNull { it.variable.declaration }
