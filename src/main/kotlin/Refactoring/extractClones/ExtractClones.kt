@@ -2,7 +2,6 @@ package Refactoring.extractClones
 
 import Metrics.Model.MethodDataset
 import Refactoring.extractClones.CloneTypes.Type1Clones
-import Refactoring.extractClones.CloneTypes.Type2Clones
 import spoon.processing.AbstractProcessor
 import spoon.reflect.declaration.CtClass
 
@@ -13,9 +12,12 @@ class ExtractClones : AbstractProcessor<CtClass<*>>() {
 
     override fun process(element: CtClass<*>) {
         val methodDataset = MethodDataset()
-        val type2Clones = Type2Clones(methodDataset)
-        type2Clones.process(element.methods)
+        val cloneMetrics = CloneMetrics(methodDataset)
 
+
+        cloneMetrics.process(element.methods)
+
+        type1Clones.find(methodDataset)
     }
 
     private fun printPairs(pairs: List<Pair<NormalizedCodeFragment, NormalizedCodeFragment>>, type: String) {

@@ -6,13 +6,12 @@ import java.io.File
 import java.io.FileWriter
 import java.io.IOException
 import java.io.PrintWriter
-import java.text.SimpleDateFormat
-import java.util.*
 
 class MethodDataset {
     private val DATASET_PATH = "./src/main/resources/dataset/methods"
 
     private val dataset = HashMap<String, Suite>()
+
 
     fun store(entityQualifiedName: String, methodLocation: String, measure: Measure, isMethod: Boolean = false) {
         val suite: Suite =
@@ -39,7 +38,7 @@ class MethodDataset {
         if (!directory.exists()) {
             directory.mkdir()
         }
-        
+
         dataset.forEach { (methodQualifiedName, suite) ->
             val reportName = StringBuilder()
 

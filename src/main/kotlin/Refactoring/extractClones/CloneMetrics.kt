@@ -1,4 +1,4 @@
-package Refactoring.extractClones.CloneTypes
+package Refactoring.extractClones
 
 
 import Metrics.Methods.MethodMetrics.Companion.calculateNumberOfArguments
@@ -20,7 +20,7 @@ import repoPath
 import spoon.reflect.declaration.CtMethod
 import java.io.File
 
-class Type2Clones(private val methodDataset: MethodDataset) {
+class CloneMetrics(private val methodDataset: MethodDataset) {
 
     fun process(methods: MutableSet<CtMethod<*>>) {
 
