@@ -1,6 +1,6 @@
 package Refactoring
 
-import Refactoring.extractType1Clones.ExtractType1Clones
+import Refactoring.extractClones.ExtractClones
 import org.eclipse.jdt.core.compiler.InvalidInputException
 import spoon.Launcher
 import spoon.reflect.code.CtComment
@@ -20,7 +20,7 @@ class RefactoringService(private val repoName: String) {
 
     fun refactor(): List<File> {
         addStructureToClasses()
-        launcher.model.processWith(ExtractType1Clones())
+        launcher.model.processWith(ExtractClones())
         return replaceModifiedFiles()
     }
 

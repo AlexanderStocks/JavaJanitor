@@ -1,12 +1,10 @@
-import Refactoring.extractType1Clones.ExtractType1Clones
+import Refactoring.extractClones.ExtractClones
 import spoon.Launcher
 
 fun main() {
     val launcher = Launcher()
     launcher.environment.noClasspath = true
-    launcher.addInputResource("src/main/resources/test.java")
-    launcher.addProcessor(ExtractType1Clones())
+    launcher.addInputResource("src/main/resources/TestCases")
+    launcher.addProcessor(ExtractClones())
     launcher.run()
-
-    launcher.prettyprint()
 }

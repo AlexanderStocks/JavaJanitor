@@ -1,18 +1,18 @@
-package Refactoring.extractType1Clones
+package Refactoring.extractClones
 
 import spoon.reflect.code.CtStatement
-import spoon.reflect.declaration.CtExecutable
+import spoon.reflect.declaration.CtMethod
 import spoon.reflect.visitor.filter.TypeFilter
 
 class CodeNormalizer {
-    fun normalizeMethods(executable: CtExecutable<*>): List<NormalizedCodeFragment> {
+    fun normalizeMethods(executable: CtMethod<*>): List<NormalizedCodeFragment> {
         val statements = executable.getElements(TypeFilter(CtStatement::class.java))
         return statements.map { NormalizedCodeFragment(it) }
     }
 }
 
 data class NormalizedCodeFragment(val statement: CtStatement) {
-    val normalizedCode: String by lazy { normalizeStatement(statement) }
+    val normalizedCode = normalizeStatement(statement)
 
     private fun normalizeStatement(statement: CtStatement): String {
         return statement.toString()

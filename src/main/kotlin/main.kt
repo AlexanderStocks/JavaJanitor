@@ -18,6 +18,7 @@ import java.io.File
 import java.security.Security
 import kotlin.system.exitProcess
 
+var repoPath = ""
 
 fun main() {
     val server = embeddedServer(Netty, port = 4567, module = Application::ListenToGithubApp)
@@ -75,7 +76,7 @@ fun Application.ListenToGithubApp() {
                 "src/main/resources"
             )
 
-            val repoPath = "src/main/resources/${repoName?.removeSuffix(".zip")}"
+            repoPath = "src/main/resources/${repoName?.removeSuffix(".zip")}"
             println("cloned")
 
             val refactoringService = RefactoringService(repoPath)

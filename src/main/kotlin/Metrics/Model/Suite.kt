@@ -1,22 +1,20 @@
 package Metrics.Model
 
-class Suite(private var classQualifiedName: String) {
-    val measures: List<Measure> = mutableListOf()
+import kotlinx.serialization.Serializable
+
+@Serializable
+class Suite(private var qualifiedName: String, private var _location: String) {
+
+    private val metrics = mutableMapOf<Metric, Double>()
+
 
     fun addMeasure(measure: Measure) {
-        if (measures.stream().filter { m -> m.metric.shortName == measure.metric.shortName }.count() == 0L) {
-            measures.plus(measure)
-        }
+        metrics[measure.metric] = measure.value
     }
 
-    fun toCSV(): String {
-        val buffer = StringBuilder(classQualifiedName)
+    val size: Int
+        get() = metrics.size
 
-        for (measure in measures) {
-            buffer.append(";")
-            buffer.append(measure.value)
-        }
-        
-        return buffer.toString()
-    }
+    val location: String
+        get() = _location
 }
