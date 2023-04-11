@@ -6,11 +6,15 @@ import java.io.File
 import java.io.FileWriter
 import java.io.IOException
 import java.io.PrintWriter
+import java.util.*
 
 class MethodDataset {
     private val DATASET_PATH = "./src/main/resources/dataset/methods"
 
     private val dataset = HashMap<String, Suite>()
+
+
+    fun viewDataset() = Collections.unmodifiableMap(dataset)
 
 
     fun store(entityQualifiedName: String, methodLocation: String, measure: Measure, isMethod: Boolean = false) {
@@ -19,15 +23,10 @@ class MethodDataset {
                 dataset[entityQualifiedName] = it
             }
         val entityType = if (isMethod) "Method" else "Class"
-        println("- $entityType Name: $entityQualifiedName [${measure.metric.shortName} = ${measure.value}]")
+        //println("- $entityType Name: $entityQualifiedName [${measure.metric.shortName} = ${measure.value}]")
         suite.addMeasure(measure)
     }
 
-    fun list() = dataset.values
-
-    fun clear() {
-        dataset.clear()
-    }
 
     private fun toJSON(suite: Suite): String {
         return Json.encodeToString(suite)

@@ -3,8 +3,9 @@ import spoon.Launcher
 
 fun main() {
     val launcher = Launcher()
-    launcher.environment.noClasspath = true
-    launcher.addInputResource("src/main/resources/TestCases")
-    launcher.addProcessor(ExtractClones())
-    launcher.run()
+    launcher.factory.environment.setCommentEnabled(true)
+    launcher.addInputResource("src/main/resources/TestCases/comment.java")
+    launcher.buildModel()
+    launcher.model.processWith(ExtractClones())
+    println(System.getProperty("java.version"))
 }
