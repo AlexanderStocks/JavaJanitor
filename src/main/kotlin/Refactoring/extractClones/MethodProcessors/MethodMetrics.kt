@@ -1,4 +1,4 @@
-package Refactoring.extractClones
+package Refactoring.extractClones.MethodProcessors
 
 
 import Metrics.Methods.MethodMetrics.Companion.calculateNumberOfArguments

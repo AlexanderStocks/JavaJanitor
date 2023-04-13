@@ -1,4 +1,4 @@
-package Refactoring.extractClones
+package Refactoring.extractClones.MethodProcessors
 
 import spoon.reflect.code.CtBlock
 import spoon.reflect.code.CtComment
@@ -11,12 +11,8 @@ class CommentCollector : CtScanner() {
 
     override fun <R : Any?> visitCtBlock(block: CtBlock<R>?) {
         val toChange = !inMethod
-
         inMethod = true
-
         super.visitCtBlock(block)
-
-
         inMethod = !toChange
     }
 

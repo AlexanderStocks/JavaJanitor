@@ -1,8 +1,8 @@
-package Refactoring.extractClones
+package Refactoring.extractClones.MethodProcessors
 
 import spoon.reflect.declaration.CtMethod
 
-class NormalisedMethodWithMetrics(val method: CtMethod<*>) {
+class ProcessedMethod(val method: CtMethod<*>) {
     val normalisedMethod = Normaliser().normalizeMethod(method)
     val metrics = MethodMetrics().process(normalisedMethod)
 }

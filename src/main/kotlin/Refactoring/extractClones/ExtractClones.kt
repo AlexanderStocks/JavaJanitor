@@ -1,29 +1,32 @@
 package Refactoring.extractClones
 
-import Refactoring.extractClones.CloneTypes.Type1Clones
+import Refactoring.extractClones.CloneTypes.Type1CloneFinder
+import Refactoring.extractClones.CloneTypes.Type2CloneFinder
+import Refactoring.extractClones.MethodProcessors.ProcessedMethod
 import spoon.processing.AbstractProcessor
 import spoon.reflect.declaration.CtClass
 import spoon.reflect.declaration.CtMethod
 
 class ExtractClones : AbstractProcessor<CtClass<*>>() {
 
-    private val normaliser = Normaliser()
-    private val type1Clones = Type1Clones()
+    private val type1CloneFinder = Type1CloneFinder()
+    private val type2CloneFinder = Type2CloneFinder()
+    private val cloneExtractor = CloneExtractor()
 
     override fun process(element: CtClass<*>) {
-        element.methods.forEach { println(it.prettyprint()) }
-//        val methodAndMetrics = element.methods.map { NormalisedMethodWithMetrics(it) }
-//
-//        methodAndMetrics.forEach { printNormalisedMethodWithMetrics(it) }
-//
-//        printResult(type1Clones.find(methodAndMetrics))
+        val processedMethods = element.methods.map { ProcessedMethod(it) }
+
+        //processedMethods.forEach { println(it.normalisedMethod.prettyprint()) }
+
+        val type1Clones = type1CloneFinder.find(processedMethods)
+        cloneExtractor.extract(element, type1Clones)
     }
 
-    fun printNormalisedMethodWithMetrics(normalisedMethodWithMetrics: NormalisedMethodWithMetrics) {
-        val method = normalisedMethodWithMetrics.method
+    fun printNormalisedMethodWithMetrics(processedMethod: ProcessedMethod) {
+        val method = processedMethod.method
         val methodName = "${method.declaringType.qualifiedName}.${method.simpleName}"
-        val normalisedMethodBody = normalisedMethodWithMetrics.normalisedMethod.prettyprint()
-        val metrics = normalisedMethodWithMetrics.metrics
+        val normalisedMethodBody = processedMethod.normalisedMethod.prettyprint()
+        val metrics = processedMethod.metrics
 
         println("Method: $methodName")
         println("Normalized Method Body:")

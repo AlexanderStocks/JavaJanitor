@@ -50,8 +50,6 @@ class MethodMetrics {
                 .toDouble()
         }
 
-        //write a function to calculate the number of input statements in a method
-
         fun calculateNumberOfInputStatements(method: CtMethod<*>): Double {
             val inputMethods = setOf(
                 "java.util.Scanner.next",
@@ -98,7 +96,6 @@ class MethodMetrics {
                 .toDouble()
         }
 
-        //write a function that finds the number of function calls that are assigned to a value
 
         fun calculateNumberOfAssignmentsThroughFunctionCalls(method: CtMethod<*>): Double {
             val functionCallAssignments = mutableSetOf<String>()
