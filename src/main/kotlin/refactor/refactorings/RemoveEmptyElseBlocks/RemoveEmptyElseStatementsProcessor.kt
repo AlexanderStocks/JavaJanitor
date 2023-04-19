@@ -1,4 +1,4 @@
-package Refactoring.Processors
+package refactor.refactorings.RemoveEmptyElseBlocks
 
 import spoon.processing.AbstractProcessor
 import spoon.reflect.code.CtIf

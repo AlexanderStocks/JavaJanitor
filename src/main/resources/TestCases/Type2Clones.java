@@ -1,22 +1,31 @@
-public class Type2ClonesExample {
+public class DuplicateCodeExample2 {
+
     public int method1() {
-        int a = 10;
-        int b = 20;
-        int c = a + b;   // clone
-        int d = a + b;   // clone
-        int e = 30;
-        int f = c + e;
-        System.out.println(f);
-        return e;
+        for (int i = 0; i < 5; i++) {
+            System.out.println("Hello, World!");
+            System.out.println("Hello, World!");
+        }
+        for (int i = 0; i < 3; i++) {
+            System.out.println("Hello, World!");
+            System.out.println("Hello, World!");
+        }
+        System.out.println("Hello, World!");
+        System.out.println("Hello, World!");
+        int num = 8;
+        return num;
     }
 
     public void method2() {
-        int a = 40;
-        int b = 50;
-        int c = a + b;   // clone
-        int d = a + b;   // clone
-        int e = 60;
-        int f = c + e;
-        System.out.println(f);
+        genericMethod();
+    }
+
+    public void method3() {
+        genericMethod();
+    }
+
+    public void genericMethod() {
+        // A comment
+        System.out.println("Hello, World!");
+        System.out.println("Hello, World!");
     }
 }

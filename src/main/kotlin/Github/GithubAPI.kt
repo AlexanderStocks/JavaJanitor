@@ -38,7 +38,25 @@ class GithubAPI {
             this.header("X-GitHub-Api-Version", "2022-11-28")
             if (body != null) {
                 this.setBody(TextContent(body, ContentType.Application.Json))
+                println("text body ${TextContent(body, ContentType.Application.Json)}")
             }
+        }
+    }
+
+    fun HttpRequestBuilder.prettyPrint(): String {
+        val method = this.method ?: HttpMethod.Get
+        val urlBuilder = this.url
+        val url = URLBuilder(urlBuilder).buildString()
+        val headers = this.headers.entries().joinToString("\n") { (key, values) ->
+            val headerValues = values.joinToString(", ")
+            "\t$key: $headerValues"
+        }
+
+        return buildString {
+            append("Request Details:\n")
+            append("Method: $method\n")
+            append("URL: $url\n")
+            append("Headers:\n$headers")
         }
     }
 
@@ -54,6 +72,7 @@ class GithubAPI {
         val apiUrl = "/repos/$owner/$repo/pulls"
         val messageBody = "{\"title\":\"$title\",\"body\":\"$body\",\"head\":\"$head\",\"base\":\"$base\"}"
         val request = buildRequest(apiUrl, HttpMethod.Post, accessToken, messageBody)
+        println("Request is ${request.prettyPrint()}")
         val response = runBlocking { client.request(request) }
 
         if (!response.status.isSuccess()) {
@@ -65,6 +84,7 @@ class GithubAPI {
 
     fun getFileContent(accessToken: String, owner: String, repo: String, path: String): RepositoryContents {
         val url = "/repos/$owner/$repo/contents/$path"
+        println("Getting file content from $url")
         val request = buildRequest(url, HttpMethod.Get, accessToken)
         val response = runBlocking { client.request(request).bodyAsText() }
         return Gson().fromJson(response, RepositoryContents::class.java)

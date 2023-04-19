@@ -1,56 +1,56 @@
 package Metrics.Methods
 
-import spoon.reflect.code.*
-import spoon.reflect.declaration.CtMethod
-import spoon.reflect.reference.CtExecutableReference
-import spoon.reflect.visitor.filter.TypeFilter
+import com.github.javaparser.ast.body.MethodDeclaration
+import com.github.javaparser.ast.expr.AssignExpr
+import com.github.javaparser.ast.expr.ConditionalExpr
+import com.github.javaparser.ast.expr.MethodCallExpr
+import com.github.javaparser.ast.expr.UnaryExpr
+import com.github.javaparser.ast.stmt.*
+import com.github.javaparser.resolution.declarations.ResolvedMethodDeclaration
+import com.github.javaparser.resolution.types.ResolvedReferenceType
+import com.github.javaparser.symbolsolver.JavaSymbolSolver
+import com.github.javaparser.symbolsolver.resolution.typesolvers.ReflectionTypeSolver
 
 class MethodMetrics {
+
+
     companion object {
-        fun calculateNumberOfLines(method: CtMethod<*>): Double {
-            return method.body?.statements?.size?.toDouble() ?: 0.0
+
+        private val symbolSolver = JavaSymbolSolver(ReflectionTypeSolver())
+
+        fun calculateNumberOfLines(method: MethodDeclaration): Double {
+            return method.body.map { it.statements.size.toDouble() }.orElse(0.0)
         }
 
-        fun calculateNumberOfArguments(method: CtMethod<*>): Double {
+        fun calculateNumberOfArguments(method: MethodDeclaration): Double {
             return method.parameters.size.toDouble()
         }
 
-        fun calculateNumberOfLocalVariables(method: CtMethod<*>): Double {
-            return method.body.getElements(TypeFilter(CtStatement::class.java))
-                .filterIsInstance<CtAssignment<*, *>>()
-                .count()
-                .toDouble()
+        fun calculateNumberOfLocalVariables(method: MethodDeclaration): Double {
+            return method.findAll(AssignExpr::class.java).count().toDouble()
         }
 
-        fun calculateNumberOfFunctionCalls(method: CtMethod<*>): Double {
-            return method.body.getElements(TypeFilter(CtStatement::class.java))
-                .filterIsInstance<CtInvocation<*>>()
-                .count()
-                .toDouble()
+        fun calculateNumberOfFunctionCalls(method: MethodDeclaration): Double {
+            return method.findAll(MethodCallExpr::class.java).count().toDouble()
         }
 
-        fun calculateNumberOfConditionalStatements(method: CtMethod<*>): Double {
-            return method.body.getElements(TypeFilter(CtStatement::class.java))
-                .filterIsInstance<CtConditional<*>>()
-                .count()
-                .toDouble()
+        fun calculateNumberOfConditionalStatements(method: MethodDeclaration): Double {
+            return method.findAll(ConditionalExpr::class.java).count().toDouble()
         }
 
-        fun calculateNumberOfIterationStatements(method: CtMethod<*>): Double {
-            return method.body.getElements(TypeFilter(CtStatement::class.java))
-                .filterIsInstance<CtLoop>()
-                .count()
-                .toDouble()
+        fun calculateNumberOfIterationStatements(method: MethodDeclaration): Double {
+            return method.findAll(WhileStmt::class.java).count().toDouble() +
+                    method.findAll(ForStmt::class.java).count().toDouble() +
+                    method.findAll(ForEachStmt::class.java).count().toDouble() +
+                    method.findAll(DoStmt::class.java).count().toDouble()
         }
 
-        fun calculateNumberOfReturnStatements(method: CtMethod<*>): Double {
-            return method.body.getElements(TypeFilter(CtStatement::class.java))
-                .filterIsInstance<CtReturn<*>>()
-                .count()
-                .toDouble()
+        fun calculateNumberOfReturnStatements(method: MethodDeclaration): Double {
+            return method.findAll(ReturnStmt::class.java).count().toDouble()
         }
 
-        fun calculateNumberOfInputStatements(method: CtMethod<*>): Double {
+
+        fun calculateNumberOfInputStatements(method: MethodDeclaration): Double {
             val inputMethods = setOf(
                 "java.util.Scanner.next",
                 "java.util.Scanner.nextLine",
@@ -68,13 +68,18 @@ class MethodMetrics {
                 "java.io.Console.readPassword"
             )
 
-            return method.body.getElements(TypeFilter(CtInvocation::class.java))
-                .map { it.executable }
-                .count { executable: CtExecutableReference<*> -> executable.simpleName in inputMethods }
+            return method.findAll(MethodCallExpr::class.java)
+                .count { methodCall ->
+                    val resolvedMethod =
+                        symbolSolver.resolveDeclaration(methodCall, ResolvedMethodDeclaration::class.java)
+                    val declaringType = resolvedMethod.declaringType() as? ResolvedReferenceType
+                    val qualifiedName = declaringType?.qualifiedName + "." + resolvedMethod.name
+                    qualifiedName in inputMethods
+                }
                 .toDouble()
         }
 
-        fun calculateNumberOfOutputStatements(method: CtMethod<*>): Double {
+        fun calculateNumberOfOutputStatements(method: MethodDeclaration): Double {
             val outputMethods = setOf(
                 "java.io.PrintStream.println",
                 "java.io.PrintStream.print",
@@ -90,46 +95,45 @@ class MethodMetrics {
                 "java.io.Writer.newLine"
             )
 
-            return method.body.getElements(TypeFilter(CtInvocation::class.java))
-                .map { it.executable }
-                .count { executable: CtExecutableReference<*> -> executable.simpleName in outputMethods }
+            return method.findAll(MethodCallExpr::class.java)
+                .count { methodCall ->
+                    val resolvedMethod =
+                        symbolSolver.resolveDeclaration(methodCall, ResolvedMethodDeclaration::class.java)
+                    val declaringType = resolvedMethod.declaringType() as? ResolvedReferenceType
+                    val qualifiedName = declaringType?.qualifiedName + "." + resolvedMethod.name
+                    qualifiedName in outputMethods
+                }
                 .toDouble()
         }
 
 
-        fun calculateNumberOfAssignmentsThroughFunctionCalls(method: CtMethod<*>): Double {
+        fun calculateNumberOfAssignmentsThroughFunctionCalls(method: MethodDeclaration): Double {
             val functionCallAssignments = mutableSetOf<String>()
 
-            // Find all assignments in the method
-            val assignments = method.body.getElements(TypeFilter(CtAssignment::class.java))
-
-            // Check each assignment for a function call on the right-hand side
+            val assignments = method.findAll(AssignExpr::class.java)
             assignments.forEach { assignment ->
-                assignment.assignment.getElements(TypeFilter(CtInvocation::class.java))
-                    .map { it.executable }
-                    .filterIsInstance<CtExecutableReference<*>>()
-                    .forEach { _ ->
-                        val assignmentTarget = assignment.assigned.toString()
-                        functionCallAssignments.add(assignmentTarget)
-                    }
+                assignment.findAll(MethodCallExpr::class.java).forEach { _ ->
+                    val assignmentTarget = assignment.target.toString()
+                    functionCallAssignments.add(assignmentTarget)
+                }
             }
 
             return functionCallAssignments.size.toDouble()
         }
 
-        fun calculateNumberOfSelectionStatements(method: CtMethod<*>): Double {
-            return method.body.getElements(TypeFilter(CtIf::class.java)).count().toDouble() +
-                    method.body.getElements(TypeFilter(CtSwitch::class.java)).flatMap { switch: CtSwitch<*> ->
-                        switch.cases.filterIsInstance<CtCase<*>>()
+        fun calculateNumberOfSelectionStatements(method: MethodDeclaration): Double {
+            return method.findAll(IfStmt::class.java).count().toDouble() +
+                    method.findAll(SwitchStmt::class.java).flatMap { switchStmt ->
+                        switchStmt.entries
                     }.count().toDouble()
         }
 
-        fun calculateNumberOfAssignmentStatements(method: CtMethod<*>): Double {
-            return method.body.getElements(TypeFilter(CtAssignment::class.java)).size.toDouble() +
-                    method.body.getElements(TypeFilter(CtUnaryOperator::class.java))
-                        .filter { it.kind == UnaryOperatorKind.POSTINC || it.kind == UnaryOperatorKind.POSTDEC }
-                        .size.toDouble()
+        fun calculateNumberOfAssignmentStatements(method: MethodDeclaration): Double {
+            return method.findAll(AssignExpr::class.java).count().toDouble() +
+                    method.findAll(UnaryExpr::class.java).count {
+                        it.operator == UnaryExpr.Operator.POSTFIX_INCREMENT ||
+                                it.operator == UnaryExpr.Operator.POSTFIX_DECREMENT
+                    }.toDouble()
         }
-
     }
 }

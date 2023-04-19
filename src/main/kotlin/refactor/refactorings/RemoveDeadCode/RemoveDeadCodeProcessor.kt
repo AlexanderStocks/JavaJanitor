@@ -1,4 +1,4 @@
-package Refactoring.Processors
+package refactor.refactorings.RemoveDeadCode
 
 import spoon.processing.AbstractProcessor
 import spoon.reflect.code.CtFieldRead

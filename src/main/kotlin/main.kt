@@ -1,8 +1,7 @@
+//import refactoring.RefactoringService
 import Github.CredentialsLoader
 import Github.GithubAPI
-import Refactoring.RefactoringService
 import Utils.Companion.createGitHubClient
-import Utils.Companion.getRelativePathToParentDirectory
 import Utils.Companion.javaFileToBase64
 import Utils.Companion.loadPrivateKey
 import Utils.Companion.parseWebhookPayload
@@ -14,8 +13,11 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.bouncycastle.jce.provider.BouncyCastleProvider
-import java.io.File
+import refactor.RefactorService
+import java.nio.file.Files
 import java.security.Security
+import kotlin.io.path.Path
+import kotlin.io.path.deleteIfExists
 import kotlin.system.exitProcess
 
 var repoPath = ""
@@ -76,47 +78,94 @@ fun Application.ListenToGithubApp() {
                 "src/main/resources"
             )
 
-            repoPath = "src/main/resources/${repoName?.removeSuffix(".zip")}"
-            println("cloned")
+            repoPath = "C:\\Users\\Stock\\Desktop\\JavaJanitor\\src\\main\\resources\\${repoName?.removeSuffix(".zip")}"
+            println("cloned at $repoPath")
 
-            val refactoringService = RefactoringService(repoPath)
+            val refactoringService = RefactorService(repoPath)
+            println("Started refactor service")
 
             val modifiedFiles = refactoringService.refactor()
-            println("refactored $modifiedFiles")
+            val refactoringCount = mutableMapOf<String, Int>()
 
-            val modifiedFile = modifiedFiles.first()
-            val modifiedFileRelativePath =
-                getRelativePathToParentDirectory(modifiedFile.path, repoPath).replace("\\", "/")
+            modifiedFiles.forEach { (modifiedFile, refactorings) ->
+                val modifiedFileRelativePath = Path(repoPath).relativize(modifiedFile).toString().replace("\\", "/")
+                val contents = githubAPI.getFileContent(
+                    installationAccessToken,
+                    originalRepo.ownerName,
+                    originalRepo.name,
+                    modifiedFileRelativePath
+                )
 
-            val contents = githubAPI.getFileContent(
-                installationAccessToken,
-                originalRepo.ownerName,
-                originalRepo.name,
-                modifiedFileRelativePath
-            )
 
-            githubAPI.updateContent(
-                originalRepo.ownerName,
-                originalRepo.name,
-                modifiedFileRelativePath,
-                "Refactor",
-                javaFileToBase64(modifiedFile),
-                contents.sha,
-                installationAccessToken,
-                newBranchName
-            )
+                val commitMessage = buildString {
+                    append("Refactor:\n")
+                    refactorings.forEach { refactoring ->
+                        append("- $refactoring\n")
+                        refactoringCount[refactoring] = refactoringCount.getOrDefault(refactoring, 0) + 1
+
+                    }
+                }
+
+                println("Commit message is $commitMessage")
+
+                githubAPI.updateContent(
+                    originalRepo.ownerName,
+                    originalRepo.name,
+                    modifiedFileRelativePath,
+                    "commitMessage",
+                    javaFileToBase64(modifiedFile.toFile()),
+                    contents.sha,
+                    installationAccessToken,
+                    newBranchName
+                )
+            }
+
+//            val modifiedFileRelativePath =
+//                getRelativePathToParentDirectory(modifiedFile.path, repoPath).replace("\\", "/")
+//
+//            val contents = githubAPI.getFileContent(
+//                installationAccessToken,
+//                originalRepo.ownerName,
+//                originalRepo.name,
+//                modifiedFileRelativePath
+//            )
+//
+//            githubAPI.updateContent(
+//                originalRepo.ownerName,
+//                originalRepo.name,
+//                modifiedFileRelativePath,
+//                "Refactor",
+//                javaFileToBase64(modifiedFile),
+//                contents.sha,
+//                installationAccessToken,
+//                newBranchName
+//            )
+//
+            val prTitle = "Refactoring Janitor"
+            val prBody = buildString {
+                append("This pull request contains ${modifiedFiles.size} refactored files. ")
+                refactoringCount.forEach { (refactoring, count) ->
+                    append("$refactoring, $count files. ")
+                }
+                append("Please review the changes.")
+            }
+
+            println(prBody)
+
 
             githubAPI.createPullRequest(
                 installationAccessToken,
                 originalRepo.ownerName,
                 originalRepo.name,
-                "Refactoring Janitor Changes",
-                "very nice changes",
+                "prTitle",
+                "prBody",
                 newBranchName,
                 "main"
             )
 
-            File(repoPath).deleteRecursively()
+            Files.walk(Path(repoPath)).forEach { file ->
+                file.deleteIfExists()
+            }
 
             call.respond(HttpStatusCode.OK)
         }
