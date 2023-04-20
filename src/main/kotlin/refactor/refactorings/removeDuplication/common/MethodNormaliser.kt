@@ -1,14 +1,14 @@
-package refactor.refactorings.extractType1Clones.methodProcessors
+package refactor.refactorings.removeDuplication.common
 
 import com.github.javaparser.ast.body.MethodDeclaration
 
-class Normaliser {
+class MethodNormaliser {
 
     private fun removeComments(method: MethodDeclaration) {
         method.allContainedComments.forEach { it.remove() }
     }
 
-    fun normaliseMethod(method: MethodDeclaration): MethodDeclaration {
+    fun normalise(method: MethodDeclaration): MethodDeclaration {
         val newMethod = method.clone()
         removeComments(newMethod)
 
