@@ -1,4 +1,4 @@
-package refactor.refactorings.extractType1Clones.methodProcessors
+package refactor.refactorings.removeDuplication.common
 
 import Metrics.Methods.MethodMetrics
 import Metrics.Model.Metric

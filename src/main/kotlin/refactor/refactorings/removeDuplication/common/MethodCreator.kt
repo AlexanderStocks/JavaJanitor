@@ -1,19 +1,24 @@
-package refactor.refactorings.extractType1Clones.methodProcessors
+package refactor.refactorings.removeDuplication.common
 
 import com.github.javaparser.ast.CompilationUnit
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration
 import com.github.javaparser.ast.body.MethodDeclaration
 import com.github.javaparser.ast.expr.MethodCallExpr
+import com.github.javaparser.ast.expr.NameExpr
+import com.github.javaparser.ast.stmt.ReturnStmt
+import com.github.javaparser.ast.type.VoidType
 
-class CloneExtractor(private val cu: CompilationUnit, private val clones: List<List<MethodDeclaration>>) {
+class MethodCreator(private val cu: CompilationUnit, private val clones: List<List<MethodDeclaration>>) {
 
-    fun extract() {
+    fun create() {
         clones.forEach { cloneGroup ->
             if (cloneGroup.isEmpty()) return@forEach
 
 
             // Create a new generic method with the common code.
-            val genericMethodName = "genericMethod" // Choose a suitable name
+
+            val firstMethodName = cloneGroup.first().nameAsString
+            val genericMethodName = "${firstMethodName}Generic"
             val genericMethod = cloneGroup.first().clone()
             genericMethod.setName(genericMethodName)
 
@@ -25,8 +30,18 @@ class CloneExtractor(private val cu: CompilationUnit, private val clones: List<L
             cloneGroup.forEach { method ->
                 val methodCall = MethodCallExpr()
                 methodCall.setName(genericMethodName)
+
+                method.parameters.forEach { param ->
+                    methodCall.addArgument(NameExpr(param.nameAsString))
+                }
+
+
                 method.body.get().statements.clear()
-                method.body.get().addStatement(methodCall)
+                if (method.type !is VoidType) {
+                    method.body.get().addStatement(ReturnStmt(methodCall))
+                } else {
+                    method.body.get().addStatement(methodCall)
+                }
 
                 println("Replaced method body with call to generic method in method: ${method.nameAsString}")
                 println(method)
