@@ -31,7 +31,6 @@ dependencies {
     implementation("org.eclipse.jgit:org.eclipse.jgit:6.4.0.202211300538-r")
     implementation("com.auth0:java-jwt:4.3.0")
     implementation("org.kohsuke:github-api:1.313")
-    implementation("com.sksamuel.hoplite:hoplite-core:2.7.1")
     implementation("com.google.code.gson:gson:2.10.1")
     implementation("org.wso2.orbit.org.yaml:snakeyaml:1.33.0.wso2v1")
     implementation("org.bouncycastle:bcprov-jdk15on:1.70")
