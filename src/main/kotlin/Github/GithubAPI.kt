@@ -3,7 +3,7 @@ package Github
 import Github.APIFormats.AccessTokenResponse
 import Github.APIFormats.Branch
 import Github.APIFormats.RepositoryContents
-import Utils.Companion.extractZipFile
+import Utils.Utils
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import com.google.gson.Gson
@@ -25,10 +25,7 @@ class GithubAPI {
     private val baseUrl = "https://api.github.com"
 
     private fun buildRequest(
-        url: String,
-        method: HttpMethod,
-        accessToken: String,
-        body: String? = null
+        url: String, method: HttpMethod, accessToken: String, body: String? = null
     ): HttpRequestBuilder {
         return HttpRequestBuilder().apply {
             this.url("$baseUrl$url")
@@ -44,7 +41,7 @@ class GithubAPI {
     }
 
     fun HttpRequestBuilder.prettyPrint(): String {
-        val method = this.method ?: HttpMethod.Get
+        val method = this.method
         val urlBuilder = this.url
         val url = URLBuilder(urlBuilder).buildString()
         val headers = this.headers.entries().joinToString("\n") { (key, values) ->
@@ -61,13 +58,7 @@ class GithubAPI {
     }
 
     fun createPullRequest(
-        accessToken: String,
-        owner: String,
-        repo: String,
-        title: String,
-        body: String,
-        head: String,
-        base: String
+        accessToken: String, owner: String, repo: String, title: String, body: String, head: String, base: String
     ) {
         val apiUrl = "/repos/$owner/$repo/pulls"
         val messageBody = "{\"title\":\"$title\",\"body\":\"$body\",\"head\":\"$head\",\"base\":\"$base\"}"
@@ -108,11 +99,7 @@ class GithubAPI {
     }
 
     fun createBranch(
-        owner: String,
-        repo: String,
-        newBranchName: String,
-        shaToBranchFrom: String,
-        accessToken: String
+        owner: String, repo: String, newBranchName: String, shaToBranchFrom: String, accessToken: String
     ) {
         val gitRefUrl = "/repos/$owner/$repo/git/refs"
         val requestBody = "{\"ref\":\"refs/heads/${newBranchName}\",\"sha\":\"$shaToBranchFrom\"}"
@@ -122,9 +109,7 @@ class GithubAPI {
     }
 
     fun getBranches(
-        owner: String,
-        repo: String,
-        accessToken: String
+        owner: String, repo: String, accessToken: String
     ): List<Branch> {
         val branchesUrl = "/repos/$owner/$repo/branches"
         val request = buildRequest(branchesUrl, HttpMethod.Get, accessToken)
@@ -150,7 +135,7 @@ class GithubAPI {
             FileOutputStream(zipFile).use { fileOut ->
                 fileOut.write(content)
             }
-            extractZipFile(zipFile, outputDir)
+            Utils.extractZipFile(zipFile, outputDir)
             return fileName
         } else {
             println("Error downloading ZIP file: ${response.status}")
@@ -180,10 +165,7 @@ class GithubAPI {
     }
 
     private fun createJwtToken(appId: String, algorithm: Algorithm): String {
-        return JWT.create()
-            .withIssuer(appId)
-            .withIssuedAt(Date(System.currentTimeMillis() - 500000))
-            .withExpiresAt(Date(System.currentTimeMillis() + 500000))
-            .sign(algorithm)
+        return JWT.create().withIssuer(appId).withIssuedAt(Date(System.currentTimeMillis() - 500000))
+            .withExpiresAt(Date(System.currentTimeMillis() + 500000)).sign(algorithm)
     }
 }
