@@ -105,5 +105,4 @@ class GithubUtils(private val githubAPI: GithubAPI, private val installationAcce
             file.deleteIfExists()
         }
     }
-
 }

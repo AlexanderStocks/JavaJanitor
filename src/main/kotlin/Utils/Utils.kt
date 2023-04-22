@@ -14,7 +14,6 @@ import java.io.BufferedOutputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.io.FileReader
-import java.nio.file.Paths
 import java.security.interfaces.RSAPrivateKey
 import java.util.*
 import java.util.zip.ZipFile
@@ -82,12 +81,6 @@ object Utils {
 
     fun javaFileToBase64(file: File): String {
         return Base64.getEncoder().encodeToString(file.readBytes())
-    }
-
-    fun getRelativePathToParentDirectory(file: String, parentDir: String): String {
-        val filePath = Paths.get(file)
-        val parentPath = Paths.get(parentDir)
-        return parentPath.relativize(filePath).toString()
     }
 
     fun getReposWithIds(payload: Any): List<Pair<Repository, Int>> = when (payload) {
