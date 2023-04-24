@@ -40,6 +40,13 @@ fun Application.ListenToGithubApp() {
                 return@post
             }
 
+            //Check if the event is a branch deletion
+            if (payload is PushEvent && payload.ref.startsWith("refs/heads/") && payload.deleted) {
+                println("Branch deletion event. Ignoring.")
+                call.respond(HttpStatusCode.OK)
+                return@post
+            }
+
             payload?.let { it1 -> Utils.getReposWithIds(it1) }?.forEach { repoWithId ->
                 val repository = repoWithId.first
                 val installationId = repoWithId.second

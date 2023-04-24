@@ -10,5 +10,6 @@ data class PushEvent(
     val repository: Repository,
     val installation: Installation,
     val pusher: Pusher,
-    val sender: Sender
+    val sender: Sender,
+    val deleted: Boolean
 )
