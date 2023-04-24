@@ -25,8 +25,7 @@ class GithubUtils(private val githubAPI: GithubAPI, private val installationAcce
         val repoName = githubAPI.cloneRepo(
             installationAccessToken, originalRepo.ownerName, originalRepo.name, "src/main/resources"
         )
-        val repoPath = "C:\\Users\\Stock\\Desktop\\JavaJanitor\\src\\main\\resources\\${repoName?.removeSuffix(".zip")}"
-        println("cloned at $repoPath")
+        val repoPath = "C:\\Users\\Stock\\IdeaProjects\\JavaJanitor\\src\\main\\resources\\${repoName?.removeSuffix(".zip")}"
 
         val refactoringService = RefactorService(repoPath)
         val modifiedFiles = refactoringService.refactor()
@@ -59,20 +58,25 @@ class GithubUtils(private val githubAPI: GithubAPI, private val installationAcce
         )
 
         val commitMessage = buildString {
-            append("Refactor:\n")
-            refactorings.forEach { refactoring ->
-                append("- $refactoring\n")
+            append("Refactor: ")
+            refactorings.forEachIndexed { index, refactoring ->
+                append(refactoring)
                 refactoringCount[refactoring] = refactoringCount.getOrDefault(refactoring, 0) + 1
+
+                if (index < refactorings.size - 1) {
+                    append(", ")
+                } else {
+                    append(".")
+                }
             }
         }
 
-        println("Commit message is $commitMessage")
 
         githubAPI.updateContent(
             originalRepo.ownerName,
             originalRepo.name,
             modifiedFileRelativePath,
-            "commitMessage",
+            commitMessage,
             javaFileToBase64(modifiedFile.toFile()),
             contents.sha,
             installationAccessToken,
