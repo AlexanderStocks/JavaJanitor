@@ -1,111 +1,57 @@
-# JavaJanitor Github App README IS WRONG< IGNORE IT
+# Java Janitor
+Java Janitor is a Java code quality tool that automates code refactoring, enforces coding standards, and optimizes code. It is designed to help developers and teams produce high-quality code, reduce technical debt, and improve code maintainability.
 
-In large codebases there are often lots of incremental improvements and refactor that could be made to the code to
-improve it, if only anyone could find the time to get around to it.
-This project aims to create an automated refactor janitor that would continuously analyse a codebase, detect areas of
-low code quality, and propose PRs to incrementally improve the code.
+## Features
+Java Janitor provides the following features:
 
-The RefactoringJanitor GitHub App provides support to automatically run the Repairnator pipeline on each failing build:
+Automatic refactoring of code
+Enforcement of coding standards and best practices
+Optimization of code
+Reporting of code quality metrics
+Integration with popular development tools
 
-1. Detect failing builds
-2. Search for a patch
-3. If a valid patch is found, create a pull-request on Github
+## Getting Started
+To use Java Janitor, you will need to have the following installed:
 
-It does so by pushing failing travisCI build identifiers to an ActiveMQ server. A worker pulls them for the repair
-attemtps.
+Java Development Kit (JDK) version 8 or higher
+Gradle build tool version 6.7 or higher
+You can then download the Java Janitor code from the GitHub repository and build it using Gradle. Once built, you can run the Java Janitor command line tool to analyze your code and generate reports.
 
-## How to Install the RefactoringJanitor GitHub App?
+Usage
+Java Janitor can be run as a command line tool or integrated into your development workflow using build tools or plugins.
 
-Required steps:
+Command Line
+To run Java Janitor as a command line tool, navigate to the root directory of the project and run the following command:
 
-1. visit https://github.com/apps/RefactoringJanitor
-2. click on the green button "Install"
-3. Activate Travis CI on your repo (<https://travis-ci.org/account/repositories>
-   or <https://travis-ci.com/account/repositories>)
+css
+Copy code
+java -jar javajanitor.jar --path [path/to/project]
+Replace [path/to/project] with the path to your Java project. Java Janitor will analyze your code and generate reports in the reports directory.
 
-__Permissions__ In order to listen on specific events with this app, it is required to enable permissions
-of `Issues`, `Pull requests` and `Commit statuses`, to `Read & Write` for all of them
-at <https://github.com/settings/installations> (click on RefactoringJanitor).
+Gradle
+To integrate Java Janitor into your Gradle build, add the following to your build.gradle file:
 
-## How to Use the RefactoringJanitor GitHub App?
+bash
+Copy code
+plugins {
+    id 'org.javajanitor' version '1.0.0'
+}
+Then run the following command to analyze your code and generate reports:
 
-1. trigger a Travis CI build: for example create a PR, reopen a PR, make commits inside a PR, for example
-2. if the travis CI build is __failing__ and the language setting in `.travis.yml` is __java__, then a comment will be
-   posted to the pull request
-3. for this failing build, if Repairnator can find one valid patch, it will create one PR for the current PR
+Copy code
+gradle janitor
 
-## Developer Documentation
 
-### Architecture Overview
+Copy code
+mvn verify
+IDE Plugins
+Java Janitor also provides plugins for popular IDEs, including Eclipse and IntelliJ IDEA. These plugins provide real-time analysis of your code as you write it, and generate reports and recommendations for improving code quality.
 
-The server listens to several GitHub webhooks, and execute corresponding scripts based on the events. The most important
-script is to request travisCI's Build info via Travis API. For each failing java-language build, the server will push
-its buildId to Repairnator's ActiveMQ. Repairnator-pipeline will pick up each buildId and invoke repair tools to
-generate possible patches. If valid patches are found, then corresponding pull-requests will be created on GitHub.
+Reporting
+Java Janitor generates reports on code quality metrics, including code complexity, maintainability, and adherence to coding standards and best practices. Reports can be viewed in a variety of formats, including HTML, XML, and CSV.
 
-### Run the app on your own
+Contributing
+Contributions to Java Janitor are welcome! If you have an idea for a new feature, a bug report, or a pull request, please submit it to the GitHub repository.
 
-```sh
-cd  src/repairnator-github-app/
-
-# Install dependencies
-npm install
-
-# Run the bot (see below)
-npm start
-```
-
-For running the app on you own, you need to fill
-
-* Webhook URL: The webhook URL is set at `https://github.com/organizations/repairnator/settings/apps/<your-app>`.
-* __`.env` file__ This GitHub app requires `.env` file. The detailed introducation
-  is [here](https://probot.github.io/docs/development/#manually-configuring-a-github-app). Two pieces of information
-  need to be filled:
-    * one TRAVIS API Token
-    * the Webhook Secret field from `Settings > Developer > settings > GitHub Apps > repairnator-bot` .
-
-### Commands
-
-#### How to run the NodeJS server for Repairnator-bot?
-
-1. clone the repairnator-bot repo
-2. add `.env` and `.private-key.pem`
-3. go to `~/repairnator-bot`
-4. run `nohup npm start &`
-
-#### How to run the ActiveMQ service?
-
-1. download and unzip activemq at the home folder
-2. check `apache-activemq-5.15.11/conf/jetty-realm.properties` to modify admin's password (recommended)
-3. check `apache-activemq-5.15.11/conf/activemq.xml` to switch the conversion strategy (recommended):
-
-> change item likes `<transportConnector name="amqp" uri="amqp://localhost:5672?maximumConnections=1000"/>`
->
-to `<transportConnector name="amqp" uri="amqp://localhost:5672?maximumConnections=1000&amp;transport.transformer=jms"/>`.
-> check [document](https://activemq.apache.org/amqp) if interested.
-
-4. go to `~/apache-activemq-5.15.11/bin` and run `./activemq start`
-5. visit the ActiveMQ's web console (http://{ip}:8161/admin/)
-
-#### How to update the app?
-
-1. make updates inside the project (`git pull origin`)
-2. stop the server (`ps -ef | grep npm` and `ps -ef | grep node` to kill processes manually, then re-run the server
-
-#### What to do when Repairnator GitHub app does not work normally?
-
-One cause is the "403 - access denied" issue
-
-1. edit `~/repairnator-bot/.env`
-2. try other TRAVIS tokens (the Travis API is not stable)
-3. contact the travis support<support@travis-ci.com>
-
-### Docker Image
-
-The tag of its docker image is `repairnator/github-app:latest`, or check it
-at [DockerHub](https://hub.docker.com/repository/docker/repairnator/github-app).
-
-### Reference
-
-- https://probot.github.io/docs/
-- https://developer.travis-ci.com/
+License
+Java Janitor is released under the MIT License. See LICENSE for details.
