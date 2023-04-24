@@ -12,6 +12,7 @@ import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
+import java.util.stream.Collectors
 
 class RefactorService(projectRootString: String) {
     private val projectRoot: Path = Paths.get(projectRootString)
@@ -35,9 +36,10 @@ class RefactorService(projectRootString: String) {
         println("Parsing Java files...")
 
         val cus = Files.walk(projectRoot)
-            .filter { it.toString().endsWith(".java") }
-            .map { StaticJavaParser.parse(it) }
-            .toList()
+            .filter { path -> path.toString().endsWith(".java") }
+            .map { path -> StaticJavaParser.parse(path) }
+            .collect(Collectors.toList())
+
         println("parse files")
 
         cus.forEach { println(it.storage.get().path) }
