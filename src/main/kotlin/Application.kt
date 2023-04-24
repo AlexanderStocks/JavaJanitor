@@ -1,9 +1,7 @@
-import Config.CredentialsLoader
-import Github.APIFormats.push.PushEvent
-import Github.GithubAPI
-import Github.GithubUtils
-import Utils.Utils
-import Utils.Utils.createGitHubClient
+import config.CredentialsLoader
+import github.GithubAPI
+import github.GithubUtils
+import github.apiFormats.push.PushEvent
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
@@ -12,6 +10,8 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.bouncycastle.jce.provider.BouncyCastleProvider
+import utils.Utils
+import utils.Utils.createGitHubClient
 import java.security.Security
 
 fun main() {
@@ -20,7 +20,7 @@ fun main() {
 }
 
 fun Application.ListenToGithubApp() {
-    val config = CredentialsLoader("Config/config.yml").load()
+    val config = CredentialsLoader("config/config.yml").load()
     val appId = config["GITHUB_APP_ID"] as String
     val baseUrl = config["GITHUB_BASE_URL"] as String
     val privateKeyPath = config["GITHUB_APP_PRIVATE_KEY_PATH"] as String

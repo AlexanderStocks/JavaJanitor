@@ -5,9 +5,9 @@ import refactor.refactorings.removeDuplication.common.CloneExtractor
 import refactor.refactorings.removeDuplication.common.ProcessedMethod
 
 class Type1CloneExtractor : CloneExtractor() {
-    private val type2CloneFinder = Type1CloneFinder()
+    private val type1CloneFinder = Type1CloneFinder()
 
     override fun findClones(processedMethods: List<ProcessedMethod>): List<List<MethodDeclaration>> {
-        return type2CloneFinder.find(processedMethods)
+        return type1CloneFinder.find(processedMethods)
     }
 }

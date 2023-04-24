@@ -1,8 +1,8 @@
 package refactor.refactorings.removeDuplication.common
 
-import Metrics.Methods.MethodMetrics
-import Metrics.Model.Metric
 import com.github.javaparser.ast.body.MethodDeclaration
+import metrics.Model.Metric
+import metrics.methods.MethodMetrics
 
 class MethodMetrics {
 

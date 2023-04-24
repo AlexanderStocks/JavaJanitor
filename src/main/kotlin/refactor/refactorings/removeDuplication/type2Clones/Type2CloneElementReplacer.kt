@@ -5,7 +5,6 @@ import com.github.javaparser.ast.expr.NameExpr
 import com.github.javaparser.ast.expr.VariableDeclarationExpr
 
 object Type2CloneElementReplacer {
-
     fun replace(method: MethodDeclaration) {
         val variableDeclarations = method.findAll(VariableDeclarationExpr::class.java)
         val variableDeclarators = variableDeclarations.flatMap { it.variables }
@@ -20,7 +19,7 @@ object Type2CloneElementReplacer {
         }
 
         method.walk { node ->
-            if (node is NameExpr && originalToNewNames.containsKey(node.nameAsString)) {
+            if (node is NameExpr && node.nameAsString in originalToNewNames) {
                 node.setName(originalToNewNames[node.nameAsString])
             }
         }
