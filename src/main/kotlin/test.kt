@@ -2,7 +2,7 @@ import refactor.RefactorService
 
 fun main() {
     val repoPath =
-        "C:\\Users\\Stock\\Desktop\\JavaJanitor\\src\\main\\resources\\TestCases"
+        "C:\\Users\\Stock\\IdeaProjects\\JavaJanitor\\src\\main\\resources\\testCases"
     println("cloned at $repoPath")
 
     val refactoringService = RefactorService(repoPath)

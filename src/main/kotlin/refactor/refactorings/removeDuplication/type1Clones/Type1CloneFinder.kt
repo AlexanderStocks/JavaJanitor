@@ -8,7 +8,7 @@ class Type1CloneFinder : CloneFinder() {
 
     fun find(methodsAndMetrics: List<ProcessedMethod>): List<List<MethodDeclaration>> {
         return findClones(methodsAndMetrics) { methodsWithSameMetrics ->
-            methodsWithSameMetrics.groupBy { it.normalisedMethod.body }
+            methodsWithSameMetrics.groupBy { it.normalisedMethod.body }.values.toList()
         }
     }
 }

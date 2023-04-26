@@ -9,9 +9,8 @@ class Type2CloneFinder : CloneFinder() {
     fun find(methodsAndMetrics: List<ProcessedMethod>): List<List<MethodDeclaration>> {
         return findClones(methodsAndMetrics) { methodsWithSameMetrics ->
             methodsWithSameMetrics.groupBy { method ->
-                Type2CloneElementReplacer.replace(method.normalisedMethod)
-                method.normalisedMethod.body
-            }
+                val replaced = Type2CloneElementReplacer.replace(method.normalisedMethod)
+            }.values.toList()
         }
     }
 }

@@ -7,7 +7,8 @@ import com.github.javaparser.symbolsolver.JavaSymbolSolver
 import com.github.javaparser.symbolsolver.resolution.typesolvers.CombinedTypeSolver
 import com.github.javaparser.symbolsolver.resolution.typesolvers.JavaParserTypeSolver
 import com.github.javaparser.symbolsolver.resolution.typesolvers.ReflectionTypeSolver
-import refactor.refactorings.removeDuplication.type1Clones.Type1CloneExtractor
+import refactor.refactorings.removeDuplication.type2Clones.Type2CloneExtractor
+import refactor.refactorings.removeDuplication.type3Clones.Type3CloneExtractor
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
@@ -57,8 +58,9 @@ class RefactorService(projectRootString: String) {
         }
 
         println("Refactoring complete")
+
         // Save the refactored Java files
-        saveRefactoredJavaFiles(cus)
+        //saveRefactoredJavaFiles(cus)
 
         return modifiedFiles
     }
@@ -72,9 +74,9 @@ class RefactorService(projectRootString: String) {
 
     private fun loadRefactorings(): List<Refactoring> {
         return listOf(
-            Type1CloneExtractor()
-            //Type2CloneExtractor()
-//            Type3CloneExtractor()
+//            Type1CloneExtractor()
+//            Type2CloneExtractor()
+            Type3CloneExtractor()
         )
     }
 }
