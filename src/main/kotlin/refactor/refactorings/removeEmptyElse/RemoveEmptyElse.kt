@@ -1,7 +1,8 @@
-package refactor.refactorings
+package refactor.refactorings.removeEmptyElse
 
 import com.github.javaparser.ast.CompilationUnit
 import com.github.javaparser.ast.stmt.IfStmt
+import com.github.javaparser.ast.stmt.Statement
 import refactor.Refactoring
 import java.nio.file.Path
 
@@ -18,7 +19,7 @@ class RemoveEmptyElse : Refactoring {
 
     private fun removeEmptyElseBlocks(cu: CompilationUnit) {
         cu.findAll(IfStmt::class.java).forEach { ifStmt ->
-            ifStmt.elseStmt.ifPresentOrElse({ elseStmt ->
+            ifStmt.elseStmt.ifPresentOrElse({ elseStmt : Statement ->
                 if (elseStmt.isBlockStmt && elseStmt.asBlockStmt().statements.isEmpty()) {
                     ifStmt.removeElseStmt()
                 }
