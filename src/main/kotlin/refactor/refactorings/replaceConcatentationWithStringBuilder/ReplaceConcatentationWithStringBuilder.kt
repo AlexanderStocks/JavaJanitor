@@ -1,5 +1,6 @@
 package refactor.refactorings.replaceConcatentationWithStringBuilder
 
+import com.github.javaparser.StaticJavaParser
 import com.github.javaparser.ast.CompilationUnit
 import com.github.javaparser.ast.expr.BinaryExpr
 import com.github.javaparser.ast.expr.Expression
@@ -44,7 +45,7 @@ class ReplaceConcatenationWithStringBuilder : Refactoring {
 
         appendExpressionsRecursively(binaryExpr)
 
-        return com.github.javaparser.StaticJavaParser.parseExpression(stringBuilder.toString())
+        return StaticJavaParser.parseExpression(stringBuilder.toString())
     }
 
 }
