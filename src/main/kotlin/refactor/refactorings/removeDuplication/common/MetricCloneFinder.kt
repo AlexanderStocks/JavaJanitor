@@ -1,10 +1,8 @@
 package refactor.refactorings.removeDuplication.common
 
 import com.github.javaparser.ast.body.MethodDeclaration
-import com.github.javaparser.ast.stmt.BlockStmt
-import java.util.*
 
-abstract class CloneFinder {
+abstract class MetricCloneFinder {
 
     protected fun findClones(
         methodsAndMetrics: List<ProcessedMethod>,

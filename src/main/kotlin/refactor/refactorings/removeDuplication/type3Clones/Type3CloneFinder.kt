@@ -5,7 +5,6 @@ import com.github.javaparser.ast.body.MethodDeclaration
 import refactor.refactorings.removeDuplication.common.ProcessedMethod
 
 class Type3CloneFinder {
-
     fun find(methodsAndMetrics: List<ProcessedMethod>): List<List<MethodDeclaration>> {
         val methodTrees = methodsAndMetrics.map { methodAndMetric ->
             Pair(buildTreeFromMethod(methodAndMetric.method), methodAndMetric)

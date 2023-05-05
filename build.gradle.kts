@@ -39,7 +39,8 @@ dependencies {
     implementation("com.jcabi:jcabi-github:1.4.2")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.0")
     implementation("com.github.javaparser:javaparser-symbol-solver-core:3.25.2")
-
+    implementation("org.jgrapht:jgrapht:1.5.2")
+    implementation("org.jgrapht:jgrapht-core:1.5.2")
 
 }
 

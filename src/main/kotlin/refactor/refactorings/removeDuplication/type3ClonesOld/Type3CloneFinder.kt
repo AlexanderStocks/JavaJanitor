@@ -1,10 +1,10 @@
 package refactor.refactorings.removeDuplication.type3ClonesOld
 
 import com.github.javaparser.ast.body.MethodDeclaration
-import refactor.refactorings.removeDuplication.common.CloneFinder
+import refactor.refactorings.removeDuplication.common.MetricCloneFinder
 import refactor.refactorings.removeDuplication.common.ProcessedMethod
 
-class Type3CloneFinder(private val similarityThreshold: Double) : CloneFinder() {
+class Type3CloneFinder(private val similarityThreshold: Double) : MetricCloneFinder() {
     private val treeSimilarityCalculator = TreeSimilarityCalculator()
 
     fun find(methodsAndMetrics: List<ProcessedMethod>): List<List<MethodDeclaration>> {
