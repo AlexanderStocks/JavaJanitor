@@ -1,56 +1,113 @@
 package refactor.refactorings.removeDuplication.type3Clones
 
-import com.github.javaparser.StaticJavaParser
+// PDGType3CloneFinder.kt
+
+import com.github.javaparser.ast.Node
 import com.github.javaparser.ast.body.MethodDeclaration
+import org.jgrapht.Graph
+import org.jgrapht.graph.DefaultEdge
 import refactor.refactorings.removeDuplication.common.ProcessedMethod
+import refactor.refactorings.removeDuplication.type3Clones.ged.GraphEditDistanceCalculator
+import refactor.refactorings.removeDuplication.type3Clones.ged.cost.SimpleEdgeCostModel
+import refactor.refactorings.removeDuplication.type3Clones.ged.cost.SimpleVertexCostModel
+import refactor.refactorings.removeDuplication.type3Clones.utils.PDGBuilder
 
-class Type3CloneFinder {
+class Type3CloneFinder(private val similarityThreshold: Double) {
+
     fun find(methodsAndMetrics: List<ProcessedMethod>): List<List<MethodDeclaration>> {
-        val methodTrees = methodsAndMetrics.map { methodAndMetric ->
-            Pair(buildTreeFromMethod(methodAndMetric.method), methodAndMetric)
-        }
+        val groupedMethods = mutableListOf<MutableList<ProcessedMethod>>()
 
-        val clusters = mutableListOf<MutableList<MethodDeclaration>>()
+        for (currentMethod in methodsAndMetrics) {
+            val currentPdg = createPDG(currentMethod.normalisedMethod)
 
-        for (i in methodTrees.indices) {
-            for (j in i + 1 until methodTrees.size) {
-                val tree1 = methodTrees[i].first
-                val tree2 = methodTrees[j].first
+            var addedToGroup = false
 
-                val distance = Tree.treeEditDistance(tree1, tree2)
+            for (group in groupedMethods) {
+                println("PDGType3CloneFinder: comparing ${group.first().normalisedMethod.nameAsString} and ${currentMethod.normalisedMethod.nameAsString}")
+                val representativePdg = createPDG(group.first().normalisedMethod)
 
-                // Customize the threshold for determining clones
-                val similarityThreshold = 0.8
-                val similarity = 1.0 - (distance.toDouble() / (tree1.size() + tree2.size()))
-
-                if (similarity >= similarityThreshold) {
-                    val method1 = methodTrees[i].second.method
-                    val method2 = methodTrees[j].second.method
-
-                    // Merge clusters if methods are already in different clusters
-                    val cluster1 = clusters.find { methods -> methods.contains(method1) }
-                    val cluster2 = clusters.find { methods -> methods.contains(method2) }
-
-                    if (cluster1 != null && cluster2 != null && cluster1 != cluster2) {
-                        cluster1.addAll(cluster2)
-                        clusters.remove(cluster2)
-                    } else if (cluster1 != null) {
-                        cluster1.add(method2)
-                    } else if (cluster2 != null) {
-                        cluster2.add(method1)
-                    } else {
-                        clusters.add(mutableListOf(method1, method2))
-                    }
+                if (areMethodsSimilar(currentPdg, representativePdg)) {
+                    group.add(currentMethod)
+                    addedToGroup = true
+                    break
                 }
+            }
+
+            if (!addedToGroup) {
+                groupedMethods.add(mutableListOf(currentMethod))
             }
         }
 
-        return clusters
+        println("PDGType3CloneFinder: ${groupedMethods.size} groups found")
+        groupedMethods.forEach { group ->
+            println("PDGType3CloneFinder: ${group.size} methods in group")
+        }
+
+        return groupedMethods.filter { it.size > 1 }.map { group -> group.map { it.method } }
     }
 
-    private fun buildTreeFromMethod(method: MethodDeclaration): Tree {
-        val cu = StaticJavaParser.parse("class Dummy { $method }")
-        val treeBuilder = ASTTreeBuilder()
-        return treeBuilder.buildTree(cu)
+    private fun createPDG(method: MethodDeclaration): Graph<Node, DefaultEdge> {
+        val pdgBuilder = PDGBuilder(method)
+        return pdgBuilder.buildPDG()
+    }
+
+    private fun areMethodsSimilar(pdg1: Graph<Node, DefaultEdge>, pdg2: Graph<Node, DefaultEdge>): Boolean {
+        val edgeCost = SimpleEdgeCostModel()
+        val vertexCost = SimpleVertexCostModel()
+
+        val gedCalculator = GraphEditDistanceCalculator(pdg1, pdg2, vertexCost, edgeCost)
+        val similarity = gedCalculator.computeSimilarity()
+        return similarity >= similarityThreshold
+    }
+
+//    private fun groupMethodsByType3Criteria(
+//        methodsWithSameMetrics: List<ProcessedMethod>,
+//        averageMetricValue: Double,
+//        range1Threshold: Int,
+//        range2Threshold: Int
+//    ): List<List<ProcessedMethod>> {
+//        val groups = mutableListOf<List<ProcessedMethod>>()
+//
+//        for (method1 in methodsWithSameMetrics) {
+//            val group = mutableListOf<ProcessedMethod>()
+//
+//            for (method2 in methodsWithSameMetrics) {
+//                if (method1 == method2) continue
+//
+//                val range1 = calculateRange1(method1.metrics, averageMetricValue)
+//                val range2 = calculateRange2(method1.method, method2.method)
+//
+//                if (range1 >= range1Threshold && range2 >= range2Threshold) {
+//                    group.add(method2)
+//                }
+//            }
+//
+//            if (group.isNotEmpty()) {
+//                group.add(method1)
+//                groups.add(group)
+//            }
+//        }
+//
+//        return groups
+//    }
+
+    private fun calculateRange1(actualMetricValue: Double, averageMetricValue: Double): Int {
+        return ((actualMetricValue * 100) / averageMetricValue).toInt()
+    }
+
+    private fun calculateRange2(method1: MethodDeclaration, method2: MethodDeclaration): Int {
+        val lines1 = method1.toString().lines()
+        val lines2 = method2.toString().lines()
+
+        val minLength = minOf(lines1.size, lines2.size)
+        var similarLineCount = 0
+
+        for (i in 0 until minLength) {
+            if (lines1[i].trim() == lines2[i].trim()) {
+                similarLineCount++
+            }
+        }
+
+        return (similarLineCount * 100) / lines1.size
     }
 }

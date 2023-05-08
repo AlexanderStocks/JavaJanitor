@@ -7,14 +7,7 @@ import com.github.javaparser.symbolsolver.JavaSymbolSolver
 import com.github.javaparser.symbolsolver.resolution.typesolvers.CombinedTypeSolver
 import com.github.javaparser.symbolsolver.resolution.typesolvers.JavaParserTypeSolver
 import com.github.javaparser.symbolsolver.resolution.typesolvers.ReflectionTypeSolver
-import refactor.refactorings.collapseNestedIfStatements.CollapseNestedIfStatements
 import refactor.refactorings.removeDuplication.type3Clones.Type3CloneExtractor
-import refactor.refactorings.removeDuplication.type3Clones.Type3CloneFinder
-import refactor.refactorings.removeDuplication.type3ClonesPDG.PDGType3CloneExtractor
-import refactor.refactorings.removeRedundantTernaryOperators.RemoveRedundantTernaryOperators
-import refactor.refactorings.replaceConcatentationWithStringBuilder.ReplaceConcatenationWithStringBuilder
-import refactor.refactorings.replaceForWithForEach.ReplaceForLoopsWithForEach
-import refactor.refactorings.replaceUtilityClassesWithSingletons.ReplaceUtilityClassesWithSingletons
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
@@ -56,7 +49,7 @@ class RefactorService(projectRootString: String) {
         // Apply refactorings
         refactorings.forEach {
             println("Applying ${it.javaClass.simpleName}... ")
-            val modifiedPaths = it.process(cus)
+            val modifiedPaths = it.process(projectRoot, cus)
 
             modifiedPaths.forEach { path ->
                 modifiedFiles.getOrPut(path) { mutableListOf() }.add(it.javaClass.simpleName)
@@ -83,7 +76,7 @@ class RefactorService(projectRootString: String) {
 
     private fun loadRefactorings(): List<Refactoring> {
         return listOf(
-            PDGType3CloneExtractor()
+            Type3CloneExtractor()
 //            ReplaceConcatenationWithStringBuilder()
 //            ReplaceUtilityClassesWithSingletons()
 //            CollapseNestedIfStatements()

@@ -10,7 +10,7 @@ import refactor.Refactoring
 import java.nio.file.Path
 
 class ReplaceUtilityClassesWithSingletons : Refactoring {
-    override fun process(cus: List<CompilationUnit>): List<Path> {
+    override fun process(projectRoot: Path, cus: List<CompilationUnit>): List<Path> {
         return cus.mapNotNull { replaceUtilityClassesWithSingletonsAndSave(it) }
     }
 

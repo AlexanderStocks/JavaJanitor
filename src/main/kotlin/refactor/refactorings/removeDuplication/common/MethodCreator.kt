@@ -14,12 +14,14 @@ class MethodCreator(private val cu: CompilationUnit, private val clones: List<Li
         clones.forEach { cloneGroup ->
             if (cloneGroup.isEmpty()) return@forEach
 
+            // Find the method with the smallest number of statements in its body
+            val methodWithSmallestBody = cloneGroup.minBy { it.body.get().statements.size }
+
+            val firstMethodName = methodWithSmallestBody.nameAsString
+            val genericMethodName = "${firstMethodName}Generic"
 
             // Create a new generic method with the common code.
-
-            val firstMethodName = cloneGroup.first().nameAsString
-            val genericMethodName = "${firstMethodName}Generic"
-            val genericMethod = cloneGroup.first().clone()
+            val genericMethod = methodWithSmallestBody.clone()
             genericMethod.setName(genericMethodName)
 
             println("Created generic method: $genericMethodName")

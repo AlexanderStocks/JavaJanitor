@@ -2,8 +2,9 @@ import refactor.RefactorService
 import java.nio.file.Files
 
 fun main() {
-    val repoPath =
-        "C:\\Users\\Stock\\IdeaProjects\\JavaJanitor\\src\\main\\resources\\type3Tests"
+//    val repoPath =
+//        "C:\\Users\\Stock\\IdeaProjects\\JavaJanitor\\src\\main\\resources\\type3Tests"
+    val repoPath = "C:\\Users\\Stock\\Desktop\\JavaProject"
     println("cloned at $repoPath")
 
     val refactoringService = RefactorService(repoPath)

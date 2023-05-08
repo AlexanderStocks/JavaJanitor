@@ -9,7 +9,7 @@ abstract class CloneExtractor : Refactoring {
 
     protected abstract fun findClones(processedMethods: List<ProcessedMethod>): List<List<MethodDeclaration>>
 
-    override fun process(cus: List<CompilationUnit>): List<Path> {
+    override fun process(projectRoot: Path, cus: List<CompilationUnit>): List<Path> {
         val modifiedFiles = mutableSetOf<Path>()
 
         cus.forEach { cu ->

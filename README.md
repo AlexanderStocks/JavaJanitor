@@ -7,7 +7,7 @@ Java Janitor provides the following features:
 Automatic refactoring of code
 Enforcement of coding standards and best practices
 Optimization of code
-Reporting of code quality metrics
+Reporting of code quality metric
 Integration with popular development tools
 
 ## Getting Started
@@ -48,7 +48,7 @@ IDE Plugins
 Java Janitor also provides plugins for popular IDEs, including Eclipse and IntelliJ IDEA. These plugins provide real-time analysis of your code as you write it, and generate reports and recommendations for improving code quality.
 
 Reporting
-Java Janitor generates reports on code quality metrics, including code complexity, maintainability, and adherence to coding standards and best practices. Reports can be viewed in a variety of formats, including HTML, XML, and CSV.
+Java Janitor generates reports on code quality metric, including code complexity, maintainability, and adherence to coding standards and best practices. Reports can be viewed in a variety of formats, including HTML, XML, and CSV.
 
 Contributing
 Contributions to Java Janitor are welcome! If you have an idea for a new feature, a bug report, or a pull request, please submit it to the GitHub repository.

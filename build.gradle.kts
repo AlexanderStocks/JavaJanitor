@@ -41,7 +41,7 @@ dependencies {
     implementation("com.github.javaparser:javaparser-symbol-solver-core:3.25.2")
     implementation("org.jgrapht:jgrapht:1.5.2")
     implementation("org.jgrapht:jgrapht-core:1.5.2")
-
+    implementation("org.netbeans.external:gradle-tooling-api:RELEASE170")
 }
 
 tasks.test {
