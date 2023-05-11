@@ -9,7 +9,7 @@ import tester.TestRunner
 import java.nio.file.Path
 
 class Type3CloneExtractor : CloneExtractor() {
-    private val similarityThreshold = 0.9
+    private val similarityThreshold = 0.8
     private val type3CloneFinder = Type3CloneFinder(similarityThreshold)
 
     override fun findClones(processedMethods: List<ProcessedMethod>): List<List<MethodDeclaration>> {

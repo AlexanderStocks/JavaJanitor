@@ -1,15 +1,15 @@
 package refactor.refactorings.removeDuplication.type1Clones
 
 import com.github.javaparser.ast.body.MethodDeclaration
-import refactor.refactorings.removeDuplication.common.cloneFinders.MetricCloneFinder
 import refactor.refactorings.removeDuplication.common.ProcessedMethod
+import refactor.refactorings.removeDuplication.common.cloneFinders.BaseCloneFinder
 
-class Type1CloneFinder : MetricCloneFinder() {
-
+class Type1CloneFinder : BaseCloneFinder() {
     override fun find(methodsAndMetrics: List<ProcessedMethod>): List<List<MethodDeclaration>> {
         return findClones(methodsAndMetrics) { methodsWithSameMetrics ->
-            methodsWithSameMetrics.groupBy { it.normalisedMethod.body }.values.toList()
-        }
+            methodsWithSameMetrics.groupBy { method ->
+                method.normalisedMethod.body
+            }.values.toList()
+        }.map { methods -> methods.map { method -> method.method } }
     }
-
 }

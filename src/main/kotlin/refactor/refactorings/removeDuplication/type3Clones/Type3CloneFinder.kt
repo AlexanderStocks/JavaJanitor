@@ -1,49 +1,49 @@
 package refactor.refactorings.removeDuplication.type3Clones
 
-// PDGType3CloneFinder.kt
-
 import com.github.javaparser.ast.Node
 import com.github.javaparser.ast.body.MethodDeclaration
 import org.jgrapht.Graph
 import org.jgrapht.graph.DefaultEdge
 import refactor.refactorings.removeDuplication.common.ProcessedMethod
+import refactor.refactorings.removeDuplication.common.cloneFinders.ThresholdCloneFinder
+import refactor.refactorings.removeDuplication.type2Clones.Type2CloneElementReplacer
 import refactor.refactorings.removeDuplication.type3Clones.ged.GraphEditDistanceCalculator
 import refactor.refactorings.removeDuplication.type3Clones.ged.cost.SimpleEdgeCostModel
 import refactor.refactorings.removeDuplication.type3Clones.ged.cost.SimpleVertexCostModel
 import refactor.refactorings.removeDuplication.type3Clones.utils.PDGBuilder
 
-class Type3CloneFinder(private val similarityThreshold: Double) {
+class Type3CloneFinder(private val similarityThreshold: Double) : ThresholdCloneFinder(similarityThreshold) {
 
-    fun find(methodsAndMetrics: List<ProcessedMethod>): List<List<MethodDeclaration>> {
-        val groupedMethods = mutableListOf<MutableList<ProcessedMethod>>()
+    override fun find(methodsAndMetrics: List<ProcessedMethod>): List<List<MethodDeclaration>> {
+        val potentialGroups = findClones(methodsAndMetrics, ::groupMethodsByRange)
 
-        for (currentMethod in methodsAndMetrics) {
-            val currentPdg = createPDG(currentMethod.normalisedMethod)
+        return potentialGroups.flatMap { potentialClones ->
+            val pdgCache = mutableMapOf<MethodDeclaration, Graph<Node, DefaultEdge>>()
+            val groupedMethods = mutableListOf<MutableList<ProcessedMethod>>()
 
-            var addedToGroup = false
+            for (currentMethod in potentialClones) {
+                val currentPdg = pdgCache.getOrPut(currentMethod.normalisedMethod) { createPDG(Type2CloneElementReplacer.replace(currentMethod.normalisedMethod)) }
 
-            for (group in groupedMethods) {
-                println("PDGType3CloneFinder: comparing ${group.first().normalisedMethod.nameAsString} and ${currentMethod.normalisedMethod.nameAsString}")
-                val representativePdg = createPDG(group.first().normalisedMethod)
+                var addedToGroup = false
+                for (group in groupedMethods) {
+                    val representativeMethod = group.first().normalisedMethod
+                    val representativePdg = pdgCache.getOrPut(representativeMethod) { createPDG(Type2CloneElementReplacer.replace(
+                            representativeMethod)) }
 
-                if (areMethodsSimilar(currentPdg, representativePdg)) {
-                    group.add(currentMethod)
-                    addedToGroup = true
-                    break
+                    if (areMethodsSimilar(currentPdg, representativePdg)) {
+                        group.add(currentMethod)
+                        addedToGroup = true
+                        break
+                    }
+                }
+
+                if (!addedToGroup) {
+                    groupedMethods.add(mutableListOf(currentMethod))
                 }
             }
 
-            if (!addedToGroup) {
-                groupedMethods.add(mutableListOf(currentMethod))
-            }
+            groupedMethods.filter { it.size > 1 }.map { group -> group.map { it.method } }
         }
-
-        println("PDGType3CloneFinder: ${groupedMethods.size} groups found")
-        groupedMethods.forEach { group ->
-            println("PDGType3CloneFinder: ${group.size} methods in group")
-        }
-
-        return groupedMethods.filter { it.size > 1 }.map { group -> group.map { it.method } }
     }
 
     private fun createPDG(method: MethodDeclaration): Graph<Node, DefaultEdge> {
@@ -57,57 +57,7 @@ class Type3CloneFinder(private val similarityThreshold: Double) {
 
         val gedCalculator = GraphEditDistanceCalculator(pdg1, pdg2, vertexCost, edgeCost)
         val similarity = gedCalculator.computeSimilarity()
+        println("Similarity: $similarity")
         return similarity >= similarityThreshold
-    }
-
-//    private fun groupMethodsByType3Criteria(
-//        methodsWithSameMetrics: List<ProcessedMethod>,
-//        averageMetricValue: Double,
-//        range1Threshold: Int,
-//        range2Threshold: Int
-//    ): List<List<ProcessedMethod>> {
-//        val groups = mutableListOf<List<ProcessedMethod>>()
-//
-//        for (method1 in methodsWithSameMetrics) {
-//            val group = mutableListOf<ProcessedMethod>()
-//
-//            for (method2 in methodsWithSameMetrics) {
-//                if (method1 == method2) continue
-//
-//                val range1 = calculateRange1(method1.metrics, averageMetricValue)
-//                val range2 = calculateRange2(method1.method, method2.method)
-//
-//                if (range1 >= range1Threshold && range2 >= range2Threshold) {
-//                    group.add(method2)
-//                }
-//            }
-//
-//            if (group.isNotEmpty()) {
-//                group.add(method1)
-//                groups.add(group)
-//            }
-//        }
-//
-//        return groups
-//    }
-
-    private fun calculateRange1(actualMetricValue: Double, averageMetricValue: Double): Int {
-        return ((actualMetricValue * 100) / averageMetricValue).toInt()
-    }
-
-    private fun calculateRange2(method1: MethodDeclaration, method2: MethodDeclaration): Int {
-        val lines1 = method1.toString().lines()
-        val lines2 = method2.toString().lines()
-
-        val minLength = minOf(lines1.size, lines2.size)
-        var similarLineCount = 0
-
-        for (i in 0 until minLength) {
-            if (lines1[i].trim() == lines2[i].trim()) {
-                similarLineCount++
-            }
-        }
-
-        return (similarLineCount * 100) / lines1.size
     }
 }

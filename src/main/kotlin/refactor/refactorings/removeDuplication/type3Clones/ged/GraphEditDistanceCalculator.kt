@@ -5,6 +5,7 @@ import org.jgrapht.Graph
 import org.jgrapht.graph.DefaultEdge
 import refactor.refactorings.removeDuplication.type3Clones.ged.cost.EdgeCost
 import refactor.refactorings.removeDuplication.type3Clones.ged.cost.VertexCost
+import refactor.refactorings.removeDuplication.type3Clones.ged.cost.assigmentCostAlgorithms.AuctionAssignment
 import refactor.refactorings.removeDuplication.type3Clones.ged.cost.assigmentCostAlgorithms.MunkresAlgorithm
 
 class GraphEditDistanceCalculator(
@@ -42,7 +43,7 @@ class GraphEditDistanceCalculator(
 
         println("GraphEditDistanceCalculator: costMatrix = ${costMatrix.contentDeepToString()}")
 
-        val assignmentCost = MunkresAlgorithm.execute(costMatrix)
+        val assignmentCost = AuctionAssignment.execute(costMatrix)
         println("GraphEditDistanceCalculator: assignmentCost = $assignmentCost")
         val edgeCosts = calculateEdgeCosts(pdg1Vertices, pdg2Vertices, costMatrix)
 
@@ -54,6 +55,7 @@ class GraphEditDistanceCalculator(
         pdg2Vertices: List<Node>,
         costMatrix: Array<IntArray>
     ): Int {
+        println("GraphEditDistanceCalculator: calculateEdgeCosts: pdg1Vertices = $pdg1Vertices, pdg2Vertices = $pdg2Vertices, costMatrix = ${costMatrix.contentDeepToString()}")
         val edgeCosts = mutableListOf<Int>()
 
         for (i in pdg1Vertices.indices) {
@@ -61,6 +63,9 @@ class GraphEditDistanceCalculator(
                 if (costMatrix[i][j] < Int.MAX_VALUE) {
                     val pdg1Edges = pdg1.edgesOf(pdg1Vertices[i])
                     val pdg2Edges = pdg2.edgesOf(pdg2Vertices[j])
+
+                    println("GraphEditDistanceCalculator: calculateEdgeCosts: pdg1Edges = $pdg1Edges, pdg2Edges = $pdg2Edges")
+
 
                     var cost = 0
 
@@ -80,7 +85,7 @@ class GraphEditDistanceCalculator(
                                 minCost = minOf(minCost, edgeCost.calculate(edge1, edge2))
                             }
                         }
-
+                        println("GraphEditDistanceCalculator: calculateEdgeCosts: edge1 = $edge1, cost = $minCost")
                         cost += minCost
                     }
 
@@ -88,6 +93,7 @@ class GraphEditDistanceCalculator(
                 }
             }
         }
+        println("GraphEditDistanceCalculator: calculateEdgeCosts: total edge cost =${edgeCosts.sum()}")
 
         return edgeCosts.sum()
     }

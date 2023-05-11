@@ -1,5 +1,6 @@
 package tester
 
+import tester.testRunners.EmptyTestRunner
 import tester.testRunners.GradleTestRunner
 import java.nio.file.Files
 import java.nio.file.Path
@@ -14,7 +15,7 @@ interface TestRunner {
             return when {
                 Files.exists(projectPath.resolve("build.gradle")) -> GradleTestRunner(projectLocation)
                 //Files.exists(projectPath.resolve("pom.xml")) -> MavenTestRunner(projectLocation)
-                else -> throw UnsupportedOperationException("Unsupported build tool for the project at $projectLocation")
+                else -> EmptyTestRunner()
             }
         }
     }

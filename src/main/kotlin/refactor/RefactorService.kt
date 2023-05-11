@@ -7,6 +7,8 @@ import com.github.javaparser.symbolsolver.JavaSymbolSolver
 import com.github.javaparser.symbolsolver.resolution.typesolvers.CombinedTypeSolver
 import com.github.javaparser.symbolsolver.resolution.typesolvers.JavaParserTypeSolver
 import com.github.javaparser.symbolsolver.resolution.typesolvers.ReflectionTypeSolver
+import refactor.refactorings.removeDuplication.type1Clones.Type1CloneExtractor
+import refactor.refactorings.removeDuplication.type2Clones.Type2CloneExtractor
 import refactor.refactorings.removeDuplication.type3Clones.Type3CloneExtractor
 import java.io.File
 import java.nio.file.Files
