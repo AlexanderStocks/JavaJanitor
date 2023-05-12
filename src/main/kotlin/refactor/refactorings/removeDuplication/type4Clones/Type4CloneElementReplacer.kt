@@ -6,6 +6,7 @@ import com.github.javaparser.ast.expr.*
 import com.github.javaparser.ast.stmt.*
 import com.github.javaparser.ast.type.PrimitiveType
 import com.github.javaparser.ast.type.ReferenceType
+import com.github.javaparser.ast.type.Type
 import refactor.refactorings.removeDuplication.type2Clones.Type2CloneElementReplacer
 import kotlin.jvm.optionals.getOrNull
 
@@ -180,31 +181,60 @@ object Type4CloneElementReplacer {
     }
 
     private fun getVariableInfo(stmt: ExpressionStmt): Pair<String, String> {
-        val expr = stmt.expression
-        if (expr is VariableDeclarationExpr) {
-            val varName = expr.variables[0].nameAsString
-            val varType = expr.commonType
-            val nullType = when (expr.commonType) {
-                is PrimitiveType -> {
-                    when (varType) {
-                        PrimitiveType.booleanType() -> "false"
-                        PrimitiveType.charType() -> "''"
-                        PrimitiveType.byteType() -> "0.toByte()"
-                        PrimitiveType.shortType() -> "0.toShort()"
-                        PrimitiveType.intType() -> "0"
-                        PrimitiveType.longType() -> "0L"
-                        PrimitiveType.floatType() -> "0.0f"
-                        PrimitiveType.doubleType() -> "0.0"
-                        else -> "null"
-                    }
-                }
-
-                is ReferenceType -> "null"
-                else -> throw IllegalArgumentException("Unsupported type")
+        return when (val expr = stmt.expression) {
+            is VariableDeclarationExpr -> {
+                val varName = expr.variables[0].nameAsString
+                val varType = expr.commonType
+                val nullType = getNullValueForType(varType)
+                Pair(varName, nullType)
             }
-            return Pair(varName, nullType)
-        } else {
-            throw IllegalArgumentException("ExpressionStmt does not contain a VariableDeclarationExpr")
+
+            is AssignExpr -> {
+                val varName = expr.target.asNameExpr().nameAsString
+                val varType = findVariableType(stmt, varName)
+                val nullType = getNullValueForType(varType)
+                Pair(varName, nullType)
+            }
+
+            else -> {
+                throw IllegalArgumentException("ExpressionStmt does not contain a VariableDeclarationExpr or an AssignExpr")
+            }
         }
     }
+
+    private fun getNullValueForType(type: Type?): String {
+        return when (type) {
+            is PrimitiveType -> {
+                when (type) {
+                    PrimitiveType.booleanType() -> "false"
+                    PrimitiveType.charType() -> "''"
+                    PrimitiveType.byteType() -> "0.toByte()"
+                    PrimitiveType.shortType() -> "0.toShort()"
+                    PrimitiveType.intType() -> "0"
+                    PrimitiveType.longType() -> "0L"
+                    PrimitiveType.floatType() -> "0.0f"
+                    PrimitiveType.doubleType() -> "0.0"
+                    else -> "null"
+                }
+            }
+            is ReferenceType -> "null"
+            else -> throw IllegalArgumentException("Unsupported type")
+        }
+    }
+
+    private fun findVariableType(node: Node?, varName: String): Type? {
+        if (node == null) return null
+
+        if (node is VariableDeclarationExpr) {
+            for (varDecl in node.variables) {
+                if (varDecl.nameAsString == varName) {
+                    return varDecl.type
+                }
+            }
+        }
+
+        return findVariableType(node.parentNode.get(), varName)
+    }
+
+
 }
