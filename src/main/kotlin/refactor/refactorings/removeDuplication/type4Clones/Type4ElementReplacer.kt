@@ -11,8 +11,6 @@ import kotlin.jvm.optionals.getOrNull
 
 object Type4CloneElementReplacer {
     fun replace(method: MethodDeclaration): MethodDeclaration {
-
-        // Other transformations
         method.walk { node ->
             when (node) {
                 is ForStmt, is DoStmt -> {

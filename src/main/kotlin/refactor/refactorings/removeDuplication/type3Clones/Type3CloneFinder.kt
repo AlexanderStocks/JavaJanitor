@@ -14,7 +14,7 @@ import refactor.refactorings.removeDuplication.type3Clones.ged.cost.SimpleEdgeCo
 import refactor.refactorings.removeDuplication.type3Clones.ged.cost.SimpleVertexCostModel
 import refactor.refactorings.removeDuplication.type3Clones.utils.PDGBuilder
 
-open class Type3CloneFinder(private val similarityThreshold: Double) : ThresholdCloneFinder(similarityThreshold) {
+class Type3CloneFinder(private val similarityThreshold: Double) : ThresholdCloneFinder(similarityThreshold) {
 
     override fun find(methodsAndMetrics: List<ProcessedMethod>): List<List<MethodDeclaration>> {
         return findClones(methodsAndMetrics, ::groupMethodsByRange).flatMap { potentialClones ->

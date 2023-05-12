@@ -1,7 +1,6 @@
 package refactor.refactorings.removeDuplication.type2Clones
 
 import com.github.javaparser.ast.body.MethodDeclaration
-import refactor.refactorings.removeDuplication.common.cloneFinders.MetricCloneFinder
 import refactor.refactorings.removeDuplication.common.ProcessedMethod
 import refactor.refactorings.removeDuplication.common.cloneFinders.BaseCloneFinder
 

@@ -3,34 +3,44 @@ package refactor.refactorings.removeDuplication.common
 import com.github.javaparser.ast.CompilationUnit
 import com.github.javaparser.ast.body.MethodDeclaration
 import refactor.Refactoring
+import refactor.refactorings.removeDuplication.common.cloneFinders.CloneFinder
 import tester.TestRunner
 import java.nio.file.Path
 
 abstract class CloneExtractor : Refactoring {
-
-    protected abstract fun findClones(processedMethods: List<ProcessedMethod>): List<List<MethodDeclaration>>
+    protected abstract val cloneFinder: CloneFinder
+    protected open val elementReplacers: List<(MethodDeclaration) -> MethodDeclaration> = emptyList()
+    protected open val requiresTesting: Boolean = false
 
     override fun process(projectRoot: Path, cus: List<CompilationUnit>): List<Path> {
         val modifiedFiles = mutableSetOf<Path>()
 
         cus.forEach { cu ->
             val methods = cu.findAll(MethodDeclaration::class.java)
-            val processedMethods = methods.map { ProcessedMethod(it) }
-            val clones = findClones(processedMethods)
+            val processedMethods = methods.map { ProcessedMethod(it, elementReplacers) }
+            val clones = cloneFinder.find(processedMethods)
 
             if (clones.isNotEmpty()) {
-                MethodCreator(cu, clones).create()
-                modifiedFiles.add(cu.storage.get().path)
+                val originalCu = cu.clone()
+                val success : Boolean = if (requiresTesting) applyRefactoringAndTest(cu, clones, projectRoot) else true
+
+                if (success) {
+                    modifiedFiles.add(cu.storage.get().path)
+                } else {
+                    cu.replace(originalCu)
+                }
             }
         }
+
         return modifiedFiles.toList()
     }
 
-    protected fun applyRefactoringAndTest(
+    private fun applyRefactoringAndTest(
         cu: CompilationUnit,
         clones: List<List<MethodDeclaration>>,
-        testRunner: TestRunner
+        projectRoot: Path
     ): Boolean {
+        val testRunner = TestRunner.create(projectRoot.toString())
         clones.forEach { cloneGroup ->
             val originalCu = cu.clone()
             MethodCreator(cu, listOf(cloneGroup)).create()
