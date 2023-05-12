@@ -1,6 +1,4 @@
-import com.github.javaparser.StaticJavaParser
 import refactor.RefactorService
-import refactor.refactorings.removeDuplication.type4CloneDetection.Type4CloneElementReplacer
 import java.nio.file.Files
 
 fun main() {

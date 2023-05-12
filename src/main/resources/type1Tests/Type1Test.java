@@ -1,14 +1,14 @@
 class Type1Test {
-    public int test1() {
-        int i = 0;
-        int k = 1;
-        return i + k;
+    int add1() {
+        int a = 1;
+        int b = 2;
+        return a + b;
     }
 
-    public int test2() {
-        int j = 1;
-        int i = 0;
-        return i + j;
+    int add2() {
+        int b = 2;
+        int a = 1;
+        return a + b;
     }
 
     public void test3() {

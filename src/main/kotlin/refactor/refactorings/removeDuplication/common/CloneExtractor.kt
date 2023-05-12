@@ -3,6 +3,7 @@ package refactor.refactorings.removeDuplication.common
 import com.github.javaparser.ast.CompilationUnit
 import com.github.javaparser.ast.body.MethodDeclaration
 import refactor.Refactoring
+import tester.TestRunner
 import java.nio.file.Path
 
 abstract class CloneExtractor : Refactoring {
@@ -23,5 +24,25 @@ abstract class CloneExtractor : Refactoring {
             }
         }
         return modifiedFiles.toList()
+    }
+
+    protected fun applyRefactoringAndTest(
+        cu: CompilationUnit,
+        clones: List<List<MethodDeclaration>>,
+        testRunner: TestRunner
+    ): Boolean {
+        clones.forEach { cloneGroup ->
+            val originalCu = cu.clone()
+            MethodCreator(cu, listOf(cloneGroup)).create()
+            val testResults = testRunner.runTests()
+
+            if (testResults.all { it.isSuccessful }) {
+                return true
+            } else {
+                cu.replace(originalCu)
+            }
+        }
+
+        return false
     }
 }

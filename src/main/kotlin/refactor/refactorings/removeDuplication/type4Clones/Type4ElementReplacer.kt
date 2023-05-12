@@ -1,4 +1,4 @@
-package refactor.refactorings.removeDuplication.type4CloneDetection
+package refactor.refactorings.removeDuplication.type4Clones
 
 import com.github.javaparser.ast.Node
 import com.github.javaparser.ast.body.MethodDeclaration

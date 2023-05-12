@@ -1,5 +1,7 @@
 package refactor.refactorings.removeDuplication.type3Clones
 
+// PDGType3CloneFinder.kt
+
 import com.github.javaparser.ast.Node
 import com.github.javaparser.ast.body.MethodDeclaration
 import org.jgrapht.Graph
@@ -12,23 +14,22 @@ import refactor.refactorings.removeDuplication.type3Clones.ged.cost.SimpleEdgeCo
 import refactor.refactorings.removeDuplication.type3Clones.ged.cost.SimpleVertexCostModel
 import refactor.refactorings.removeDuplication.type3Clones.utils.PDGBuilder
 
-class Type3CloneFinder(private val similarityThreshold: Double) : ThresholdCloneFinder(similarityThreshold) {
+open class Type3CloneFinder(private val similarityThreshold: Double) : ThresholdCloneFinder(similarityThreshold) {
 
     override fun find(methodsAndMetrics: List<ProcessedMethod>): List<List<MethodDeclaration>> {
-        val potentialGroups = findClones(methodsAndMetrics, ::groupMethodsByRange)
-
-        return potentialGroups.flatMap { potentialClones ->
+        return findClones(methodsAndMetrics, ::groupMethodsByRange).flatMap { potentialClones ->
             val pdgCache = mutableMapOf<MethodDeclaration, Graph<Node, DefaultEdge>>()
             val groupedMethods = mutableListOf<MutableList<ProcessedMethod>>()
 
             for (currentMethod in potentialClones) {
-                val currentPdg = pdgCache.getOrPut(currentMethod.normalisedMethod) { createPDG(Type2CloneElementReplacer.replace(currentMethod.normalisedMethod)) }
+                val currentPdg =
+                    pdgCache.getOrPut(currentMethod.normalisedMethod) { createPDG(Type2CloneElementReplacer.replace(currentMethod.normalisedMethod)) }
 
                 var addedToGroup = false
+
                 for (group in groupedMethods) {
                     val representativeMethod = group.first().normalisedMethod
-                    val representativePdg = pdgCache.getOrPut(representativeMethod) { createPDG(Type2CloneElementReplacer.replace(
-                            representativeMethod)) }
+                    val representativePdg = pdgCache.getOrPut(representativeMethod) { createPDG(Type2CloneElementReplacer.replace(representativeMethod)) }
 
                     if (areMethodsSimilar(currentPdg, representativePdg)) {
                         group.add(currentMethod)
@@ -57,7 +58,6 @@ class Type3CloneFinder(private val similarityThreshold: Double) : ThresholdClone
 
         val gedCalculator = GraphEditDistanceCalculator(pdg1, pdg2, vertexCost, edgeCost)
         val similarity = gedCalculator.computeSimilarity()
-        println("Similarity: $similarity")
         return similarity >= similarityThreshold
     }
 }

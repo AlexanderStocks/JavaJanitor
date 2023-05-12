@@ -6,16 +6,16 @@ object AuctionAssignment {
     fun execute(costMatrix: Array<IntArray>): Int {
         val n = costMatrix.size
         val m = costMatrix[0].size
-        var maxVal = Int.MIN_VALUE
+        var minVal = Int.MAX_VALUE
         for (row in costMatrix) {
             for (value in row) {
-                if (value > maxVal) {
-                    maxVal = value
+                if (value < minVal) {
+                    minVal = value
                 }
             }
         }
 
-        val epsilon = max(1, maxVal / n)
+        val epsilon = max(1, minVal / n)
 
         val prices = IntArray(m)
         val assignment = IntArray(n) { -1 }
@@ -27,30 +27,30 @@ object AuctionAssignment {
 
         while (unassigned.isNotEmpty()) {
             val bidder = unassigned.removeFirst()
-            var maxObjValue = Int.MIN_VALUE
-            var maxObjIdx = -1
-            var secondMaxObjValue = Int.MIN_VALUE
+            var minObjValue = Int.MAX_VALUE
+            var minObjIdx = -1
+            var secondMinObjValue = Int.MAX_VALUE
 
             for (j in 0 until m) {
-                val objValue = costMatrix[bidder][j] - prices[j]
-                if (objValue > maxObjValue) {
-                    secondMaxObjValue = maxObjValue
-                    maxObjValue = objValue
-                    maxObjIdx = j
-                } else if (objValue > secondMaxObjValue) {
-                    secondMaxObjValue = objValue
+                val objValue = costMatrix[bidder][j] + prices[j]
+                if (objValue < minObjValue) {
+                    secondMinObjValue = minObjValue
+                    minObjValue = objValue
+                    minObjIdx = j
+                } else if (objValue < secondMinObjValue) {
+                    secondMinObjValue = objValue
                 }
             }
 
-            val increment = maxObjValue - secondMaxObjValue + epsilon
+            val decrement = secondMinObjValue - minObjValue + epsilon
 
-            if (assignment.contains(maxObjIdx)) {
-                val previousBidder = assignment.indexOf(maxObjIdx)
+            if (assignment.contains(minObjIdx)) {
+                val previousBidder = assignment.indexOf(minObjIdx)
                 unassigned.add(previousBidder)
             }
 
-            assignment[bidder] = maxObjIdx
-            prices[maxObjIdx] += increment
+            assignment[bidder] = minObjIdx
+            prices[minObjIdx] -= decrement
         }
 
         return assignment.mapIndexed { index, value -> costMatrix[index][value] }.sum()

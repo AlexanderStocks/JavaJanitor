@@ -17,7 +17,7 @@ class GraphEditDistanceCalculator(
     fun computeSimilarity(): Double {
         val ged = computeGED()
 
-        val normalizationFactor = pdg1.vertexSet().size + pdg2.vertexSet().size
+        val normalizationFactor = pdg1.vertexSet().size + pdg2.vertexSet().size + pdg1.edgeSet().size + pdg2.edgeSet().size
         return 1 - (ged.toDouble() / normalizationFactor)
     }
 
@@ -29,8 +29,6 @@ class GraphEditDistanceCalculator(
         val m = pdg2Vertices.size
         val maxSize = maxOf(n, m)
 
-        println("GraphEditDistanceCalculator: n = $n, m = $m, maxSize = $maxSize, pdg1vertices = $pdg1Vertices, pdg2vertices $pdg2Vertices" )
-
         val costMatrix = Array(maxSize) { i ->
             IntArray(maxSize) { j ->
                 if (i < n && j < m) {
@@ -41,12 +39,8 @@ class GraphEditDistanceCalculator(
             }
         }
 
-        println("GraphEditDistanceCalculator: costMatrix = ${costMatrix.contentDeepToString()}")
-
         val assignmentCost = AuctionAssignment.execute(costMatrix)
-        println("GraphEditDistanceCalculator: assignmentCost = $assignmentCost")
         val edgeCosts = calculateEdgeCosts(pdg1Vertices, pdg2Vertices, costMatrix)
-
         return assignmentCost + edgeCosts
     }
 
@@ -55,17 +49,12 @@ class GraphEditDistanceCalculator(
         pdg2Vertices: List<Node>,
         costMatrix: Array<IntArray>
     ): Int {
-        println("GraphEditDistanceCalculator: calculateEdgeCosts: pdg1Vertices = $pdg1Vertices, pdg2Vertices = $pdg2Vertices, costMatrix = ${costMatrix.contentDeepToString()}")
         val edgeCosts = mutableListOf<Int>()
-
         for (i in pdg1Vertices.indices) {
             for (j in pdg2Vertices.indices) {
                 if (costMatrix[i][j] < Int.MAX_VALUE) {
                     val pdg1Edges = pdg1.edgesOf(pdg1Vertices[i])
                     val pdg2Edges = pdg2.edgesOf(pdg2Vertices[j])
-
-                    println("GraphEditDistanceCalculator: calculateEdgeCosts: pdg1Edges = $pdg1Edges, pdg2Edges = $pdg2Edges")
-
 
                     var cost = 0
 
@@ -82,10 +71,11 @@ class GraphEditDistanceCalculator(
                             if (costMatrix[pdg1Vertices.indexOf(source1)][pdg2Vertices.indexOf(source2)] < Int.MAX_VALUE &&
                                 costMatrix[pdg1Vertices.indexOf(target1)][pdg2Vertices.indexOf(target2)] < Int.MAX_VALUE
                             ) {
-                                minCost = minOf(minCost, edgeCost.calculate(edge1, edge2))
+                                // Add a similarity measure to the edge cost calculation
+                                val vertexSimilarity = 1.0 - (costMatrix[pdg1Vertices.indexOf(source1)][pdg2Vertices.indexOf(source2)] + costMatrix[pdg1Vertices.indexOf(target1)][pdg2Vertices.indexOf(target2)]).toDouble() / 2
+                                minCost = minOf(minCost, (edgeCost.calculate(edge1, edge2) * vertexSimilarity).toInt())
                             }
                         }
-                        println("GraphEditDistanceCalculator: calculateEdgeCosts: edge1 = $edge1, cost = $minCost")
                         cost += minCost
                     }
 
@@ -93,7 +83,6 @@ class GraphEditDistanceCalculator(
                 }
             }
         }
-        println("GraphEditDistanceCalculator: calculateEdgeCosts: total edge cost =${edgeCosts.sum()}")
 
         return edgeCosts.sum()
     }

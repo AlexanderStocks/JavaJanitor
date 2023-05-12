@@ -8,9 +8,13 @@ class MethodNormaliser {
         method.allContainedComments.forEach { it.remove() }
     }
 
-    fun normalise(method: MethodDeclaration): MethodDeclaration {
-        val newMethod = method.clone()
+    fun normalise(method: MethodDeclaration, transformers: List<(MethodDeclaration) -> MethodDeclaration>): MethodDeclaration {
+        var newMethod = method.clone()
         removeComments(newMethod)
+
+        transformers.forEach { transformer ->
+            newMethod = transformer(newMethod)
+        }
 
         return newMethod
     }

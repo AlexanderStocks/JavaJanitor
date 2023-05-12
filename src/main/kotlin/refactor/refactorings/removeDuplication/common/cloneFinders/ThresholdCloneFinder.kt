@@ -1,8 +1,11 @@
 package refactor.refactorings.removeDuplication.common.cloneFinders
 
+import com.github.javaparser.ast.CompilationUnit
 import com.github.javaparser.ast.body.MethodDeclaration
 import metric.Model.Metric
+import refactor.refactorings.removeDuplication.common.MethodCreator
 import refactor.refactorings.removeDuplication.common.ProcessedMethod
+import tester.TestRunner
 
 abstract class ThresholdCloneFinder(private val threshold: Double) : BaseCloneFinder() {
     protected fun groupMethodsByRange(methods: List<ProcessedMethod>): List<List<ProcessedMethod>> {
