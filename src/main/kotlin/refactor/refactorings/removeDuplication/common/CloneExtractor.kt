@@ -10,7 +10,7 @@ import java.nio.file.Path
 abstract class CloneExtractor : Refactoring {
     protected abstract val cloneFinder: CloneFinder
     protected open val elementReplacers: List<(MethodDeclaration) -> MethodDeclaration> = emptyList()
-    protected open val requiresTesting: Boolean = false
+    protected open val requiresTesting = false
 
     override fun process(projectRoot: Path, cus: List<CompilationUnit>): List<Path> {
         val modifiedFiles = mutableSetOf<Path>()
@@ -22,7 +22,7 @@ abstract class CloneExtractor : Refactoring {
 
             if (clones.isNotEmpty()) {
                 val originalCu = cu.clone()
-                val success : Boolean = if (requiresTesting) applyRefactoringAndTest(cu, clones, projectRoot) else true
+                val success = if (requiresTesting) applyRefactoringAndTest(cu, clones, projectRoot) else true
 
                 if (success) {
                     modifiedFiles.add(cu.storage.get().path)
