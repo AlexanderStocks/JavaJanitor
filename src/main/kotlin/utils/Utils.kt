@@ -30,7 +30,7 @@ object Utils {
 
     fun parseWebhookPayload(body: String, eventType: String): Any? {
         return when (eventType) {
-            "installation" -> {
+            "installation", "installation_repositories" -> {
                 try {
                     Gson().fromJson(body, InitialiseEvent::class.java)
                 } catch (e: Exception) {

@@ -27,6 +27,14 @@ class GraphEditDistanceCalculator(
 
         val n = pdg1Vertices.size
         val m = pdg2Vertices.size
+
+        if (pdg1Vertices.isEmpty()) {
+            return pdg2Vertices.size  // the GED equals the size of the second graph
+        }
+        if (pdg2Vertices.isEmpty()) {
+            return pdg1Vertices.size  // the GED equals the size of the first graph
+        }
+
         val maxSize = maxOf(n, m)
 
         val costMatrix = Array(maxSize) { i ->

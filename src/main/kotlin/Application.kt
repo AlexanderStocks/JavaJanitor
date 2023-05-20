@@ -15,11 +15,11 @@ import utils.Utils.createGitHubClient
 import java.security.Security
 
 fun main() {
-    val server = embeddedServer(Netty, port = 4567, module = Application::ListenToGithubApp)
+    val server = embeddedServer(Netty, port = 4567, module = Application::listenToGithubApp)
     server.start(wait = true)
 }
 
-fun Application.ListenToGithubApp() {
+fun Application.listenToGithubApp() {
     val config = CredentialsLoader("config/config.yml").load()
     val appId = config["GITHUB_APP_ID"] as String
     val baseUrl = config["GITHUB_BASE_URL"] as String
@@ -33,6 +33,8 @@ fun Application.ListenToGithubApp() {
             val body = call.receiveText()
             val eventType = call.request.headers["X-GitHub-Event"]
             val payload = Utils.parseWebhookPayload(body, eventType ?: "")
+            val githubAPI = GithubAPI()
+            println("Received event: $eventType, payload: $payload")
 
             if (payload is PushEvent && payload.pusher.name == "refactoringjanitor[bot]") {
                 println("Event pushed by the bot itself. Ignoring.")
@@ -48,15 +50,16 @@ fun Application.ListenToGithubApp() {
             }
 
             payload?.let { it1 -> Utils.getReposWithIds(it1) }?.forEach { repoWithId ->
-                val repository = repoWithId.first
-                val installationId = repoWithId.second
-                val githubAPI = GithubAPI()
+                val (repository, installationId) = repoWithId
+                println("Processing repository: ${repository.full_name}, installationId: $installationId")
                 val installationAccessToken = githubAPI.fetchAccessToken(baseUrl, appId, algorithm, installationId)
+                println("installationAccessToken: $installationAccessToken")
                 val github = createGitHubClient(installationAccessToken)
-                val originalRepo = github.getRepository(repository.full_name)
-                val githubUtils = GithubUtils(githubAPI, installationAccessToken)
+                println("github: $github")
+                val githubRepo = github.getRepository(repository.full_name)
+                println("githubRepo: $githubRepo")
 
-                githubUtils.processRepo(originalRepo)
+                GithubUtils(githubAPI, installationAccessToken).processRepository(githubRepo)
             }
 
             call.respond(HttpStatusCode.OK)

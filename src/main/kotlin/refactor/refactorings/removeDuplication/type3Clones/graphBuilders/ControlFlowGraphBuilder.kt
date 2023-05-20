@@ -13,7 +13,7 @@ class ControlFlowGraphBuilder(private val method: MethodDeclaration) {
     fun buildCFG(): Graph<Node, DefaultEdge> {
         val cfg = DefaultDirectedGraph(SupplierUtil.createSupplier(Node::class.java), SupplierUtil.createSupplier(DefaultEdge::class.java), false)
 
-        val stmts = method.body.get().statements
+        val stmts = method.body.orElse(null)?.statements ?: NodeList()
         createNodes(cfg, stmts)
         connectNodes(cfg, stmts)
 

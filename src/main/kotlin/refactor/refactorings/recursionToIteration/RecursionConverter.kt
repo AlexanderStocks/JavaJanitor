@@ -15,7 +15,7 @@ class RecursionConverter {
     fun convertRecursionToIteration(cu: CompilationUnit) {
         val allMethodDeclarations = cu.findAll(MethodDeclaration::class.java)
         allMethodDeclarations.forEach { method ->
-            val recursionTypes = RecursionIdentifier.identifyRecursionTypes(method)
+            val recursionTypes = RecursionIdentifier().identifyRecursionTypes(method)
             if (recursionTypes.isNotEmpty()) {
                 transformMethod(method, recursionTypes)
             }

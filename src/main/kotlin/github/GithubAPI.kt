@@ -154,13 +154,14 @@ class GithubAPI {
         httpRequestBuilder.header(HttpHeaders.Authorization, "Bearer $jwtToken")
         httpRequestBuilder.accept(ContentType.Application.Json)
         val body = runBlocking { client.request(httpRequestBuilder).bodyAsText() }
-
+        println(body)
         return Gson().fromJson(body, AccessTokenResponse::class.java)
     }
 
     fun fetchAccessToken(baseUrl: String, appId: String, algorithm: Algorithm, installationId: Int): String {
         val tokenUrl = "$baseUrl/app/installations/$installationId/access_tokens"
         val jwtToken = createJwtToken(appId, algorithm)
+        println("JWT token is $jwtToken, token url is $tokenUrl")
         val accessTokenResponse = getAccessToken(tokenUrl, jwtToken)
 
         return accessTokenResponse.token

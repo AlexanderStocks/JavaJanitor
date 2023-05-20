@@ -3,9 +3,10 @@ package refactor.refactorings.recursionToIteration
 import com.github.javaparser.ast.Node
 import com.github.javaparser.ast.body.MethodDeclaration
 import com.github.javaparser.ast.expr.MethodCallExpr
+import com.github.javaparser.ast.stmt.BlockStmt
 import com.github.javaparser.ast.stmt.Statement
 
-object RecursionIdentifier {
+class RecursionIdentifier {
     fun identifyRecursionTypes(method: MethodDeclaration): Set<RecursionType> {
         val methodName = method.nameAsString
         val methodCalls = method.findAll(MethodCallExpr::class.java)
@@ -39,7 +40,7 @@ object RecursionIdentifier {
         if (recursionTypes.isEmpty()) {
             recursionTypes.add(RecursionType.UNKNOWN)
         }
-
+        println("Recursion types: $recursionTypes")
         return recursionTypes
     }
 
@@ -72,7 +73,19 @@ object RecursionIdentifier {
         val parentStatement = this.getAncestorOfType(Statement::class.java)
         val methodBody = this.getAncestorOfType(MethodDeclaration::class.java)?.body?.orElse(null) ?: return false
 
-        return parentStatement == methodBody.statements.last()
+        // Check if the parent statement is the last statement in the method
+        if (parentStatement == methodBody.statements.last()) {
+            return true
+        }
+
+        // If not, check if the MethodCallExpr is in the last statement of the last block statement in the method
+        val lastStatementInMethod = methodBody.statements.last()
+        if (lastStatementInMethod is BlockStmt) {
+            val lastStatementInBlock = lastStatementInMethod.statements.last()
+            return this.isDescendantOf(lastStatementInBlock)
+        }
+
+        return false
     }
 
     private fun <T : Node> Node.getAncestorOfType(type: Class<T>): T? {

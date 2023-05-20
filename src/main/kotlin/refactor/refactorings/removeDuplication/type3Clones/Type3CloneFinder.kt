@@ -14,10 +14,11 @@ import refactor.refactorings.removeDuplication.type3Clones.ged.cost.SimpleEdgeCo
 import refactor.refactorings.removeDuplication.type3Clones.ged.cost.SimpleVertexCostModel
 import refactor.refactorings.removeDuplication.type3Clones.utils.PDGBuilder
 
-class Type3CloneFinder(private val similarityThreshold: Double) : ThresholdCloneFinder(similarityThreshold) {
+open class Type3CloneFinder(private val similarityThreshold: Double) : ThresholdCloneFinder(similarityThreshold) {
+    open val elementReplacers = listOf(Type2CloneElementReplacer::replace)
 
-    override fun find(methodsAndMetrics: List<ProcessedMethod>): List<List<MethodDeclaration>> {
-        return findClones(methodsAndMetrics, ::groupMethodsByRange).flatMap { potentialClones ->
+    override fun find(methods: List<MethodDeclaration>): List<List<MethodDeclaration>> {
+        return findClones(methods.map { ProcessedMethod(it, elementReplacers) }, ::groupMethodsByRange).flatMap { potentialClones ->
             val pdgCache = mutableMapOf<MethodDeclaration, Graph<Node, DefaultEdge>>()
             val groupedMethods = mutableListOf<MutableList<ProcessedMethod>>()
 

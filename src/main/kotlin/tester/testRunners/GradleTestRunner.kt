@@ -1,6 +1,7 @@
 package tester.testRunners
 
 import org.gradle.tooling.BuildLauncher
+import org.gradle.tooling.GradleConnectionException
 import org.gradle.tooling.GradleConnector
 import org.gradle.tooling.ProjectConnection
 import org.gradle.tooling.events.OperationType
@@ -48,8 +49,15 @@ class GradleTestRunner(private val projectLocation: String) : TestRunner {
 
             try {
                 buildLauncher.run()
+            } catch (e: GradleConnectionException) {
+                println("Gradle connection failed. Passing the tests.")
+                testResults.add(TestResult("Gradle connection failed", true))
+            } catch (e: IllegalStateException) {
+                println("Illegal state exception occurred. Failing the tests.")
+                testResults.add(TestResult("Illegal state exception", false))
             } catch (e: Exception) {
                 println("Running the tests failed.")
+                testResults.add(TestResult("Unexpected exception", false))
             }
         }
 

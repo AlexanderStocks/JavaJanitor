@@ -42,6 +42,8 @@ dependencies {
     implementation("org.jgrapht:jgrapht:1.5.2")
     implementation("org.jgrapht:jgrapht-core:1.5.2")
     implementation("org.netbeans.external:gradle-tooling-api:RELEASE170")
+    implementation("com.squareup.okhttp3:okhttp:5.0.0-alpha.11")
+    implementation("com.google.googlejavaformat:google-java-format:1.17.0")
 }
 
 tasks.test {

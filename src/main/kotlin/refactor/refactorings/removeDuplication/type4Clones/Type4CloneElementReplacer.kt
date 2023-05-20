@@ -2,38 +2,53 @@ package refactor.refactorings.removeDuplication.type4Clones
 
 import com.github.javaparser.ast.Node
 import com.github.javaparser.ast.body.MethodDeclaration
+import com.github.javaparser.ast.body.VariableDeclarator
 import com.github.javaparser.ast.expr.*
 import com.github.javaparser.ast.stmt.*
 import com.github.javaparser.ast.type.PrimitiveType
 import com.github.javaparser.ast.type.ReferenceType
 import com.github.javaparser.ast.type.Type
 import refactor.refactorings.removeDuplication.type2Clones.Type2CloneElementReplacer
-import kotlin.jvm.optionals.getOrNull
 
 object Type4CloneElementReplacer {
     fun replace(method: MethodDeclaration): MethodDeclaration {
-        method.walk { node ->
-            when (node) {
-                is ForStmt, is DoStmt -> {
-                    // Convert for loop to while loop
-                    val stmt = toWhileStmt(node)
-                    node.parentNode.get().replace(stmt)
-                }
 
-                is IfStmt, is SwitchStmt, is ConditionalExpr -> {
-                    // Convert to if-else statement
-                    val ifStmt = toIfStmt(node)
-                    println("ifStmt: $ifStmt")
-                    println("node: ${node.parentNode.getOrNull()}")
-                    node.replace(ifStmt)
+        try {
+            val methodWithoutBrackets = removeUnnecessaryBrackets(method)
+
+            methodWithoutBrackets.walk { node ->
+                try {
+                    when (node) {
+                        is ForStmt, is DoStmt -> {
+                            val stmt = toWhileStmt(node)
+                            node.parentNode.get().replace(stmt)
+                        }
+                        is IfStmt, is SwitchStmt, is ConditionalExpr -> {
+                            val ifStmt = toIfStmt(node)
+                            node.replace(ifStmt)
+                        }
+                    }
+                } catch (e: Exception) {
+                    println("Exception occurred in walk block: ${e.localizedMessage}")
                 }
             }
+        } catch (e: Exception) {
+            println("Exception occurred in replace function: ${e.localizedMessage}")
         }
-
-        println("method: $method")
 
         return Type2CloneElementReplacer.replace(method)
     }
+
+    private fun removeUnnecessaryBrackets(method: MethodDeclaration): MethodDeclaration {
+        method.walk { node ->
+            if (node is EnclosedExpr) {
+                val innerExpr = node.inner
+                node.replace(innerExpr)
+            }
+        }
+        return method
+    }
+
 
     private fun toWhileStmt(node: Node): Node {
         when (node) {
@@ -105,11 +120,12 @@ object Type4CloneElementReplacer {
                 // If the ternary operator is used as an expression, replace it with a dummy literal
                 val dummyLiteral = NullLiteralExpr() // Or some other unique literal
                 node.replace(dummyLiteral)
-
                 // Find the parent node where the ternary operator is used
-                val parentNode = dummyLiteral.findAncestor(Statement::class.java)
+                val parentNode = dummyLiteral.findAncestor(Expression::class.java)
                     ?: throw IllegalArgumentException("Unsupported usage of ternary operator.")
-                val (varName, nullType) = getVariableInfo(parentNode.get().asExpressionStmt())
+
+
+                val (varName, nullType) = getVariableInfo(parentNode.get())
 
                 val ifStmt = IfStmt(
                     node.condition.clone(),
@@ -162,7 +178,9 @@ object Type4CloneElementReplacer {
                             BinaryExpr(node.selector.clone(), entry.labels.first.get(), BinaryExpr.Operator.EQUALS)
 
                         val stmt =
-                            BlockStmt().also { block -> entry.statements.filter { it !is BreakStmt }.forEach { block.addStatement(it.clone()) } }
+                            BlockStmt().also { block ->
+                                entry.statements.filter { it !is BreakStmt }.forEach { block.addStatement(it.clone()) }
+                            }
                         ifStmt = if (ifStmt == null) {
                             IfStmt(condition, stmt, defaultStmt)
                         } else {
@@ -170,7 +188,9 @@ object Type4CloneElementReplacer {
                         }
                     } else {
                         defaultStmt =
-                            BlockStmt().also { block -> entry.statements.filter { it !is BreakStmt }.forEach { block.addStatement(it.clone()) } }
+                            BlockStmt().also { block ->
+                                entry.statements.filter { it !is BreakStmt }.forEach { block.addStatement(it.clone()) }
+                            }
                     }
                 }
                 ifStmt ?: throw IllegalArgumentException("Failed to convert SwitchStmt to IfStmt.")
@@ -180,8 +200,8 @@ object Type4CloneElementReplacer {
         }
     }
 
-    private fun getVariableInfo(stmt: ExpressionStmt): Pair<String, String> {
-        return when (val expr = stmt.expression) {
+    private fun getVariableInfo(expr: Node): Pair<String, String> {
+        return when (expr) {
             is VariableDeclarationExpr -> {
                 val varName = expr.variables[0].nameAsString
                 val varType = expr.commonType
@@ -191,13 +211,24 @@ object Type4CloneElementReplacer {
 
             is AssignExpr -> {
                 val varName = expr.target.asNameExpr().nameAsString
-                val varType = findVariableType(stmt, varName)
+                val varType = findVariableType(expr, varName)
                 val nullType = getNullValueForType(varType)
                 Pair(varName, nullType)
             }
 
+            is EnclosedExpr -> {
+                // Recursively get variable info from the inner expression
+                when (val parentNode = expr.parentNode.get()) {
+                    is AssignExpr -> getVariableInfo(parentNode.parentNode.get())
+                    is VariableDeclarator -> getVariableInfo(parentNode.initializer.get())
+                    is Expression -> getVariableInfo(parentNode.parentNode.get())
+                    else -> throw IllegalArgumentException("Unsupported parent node type: ${parentNode.javaClass.name}")
+                }
+            }
+
             else -> {
-                throw IllegalArgumentException("ExpressionStmt does not contain a VariableDeclarationExpr or an AssignExpr")
+                println("$expr does not contain a VariableDeclarationExpr or an AssignExpr. Type is ${expr.javaClass.name}")
+                Pair("null", "null")
             }
         }
     }
@@ -217,6 +248,7 @@ object Type4CloneElementReplacer {
                     else -> "null"
                 }
             }
+
             is ReferenceType -> "null"
             else -> throw IllegalArgumentException("Unsupported type")
         }
@@ -235,6 +267,4 @@ object Type4CloneElementReplacer {
 
         return findVariableType(node.parentNode.get(), varName)
     }
-
-
 }

@@ -15,8 +15,8 @@ fun main() {
     modifiedFiles.forEach { (modifiedFile, refactorings) ->
         println("Modified file: $modifiedFile")
         println("Refactorings applied: ${refactorings.joinToString(", ")}")
-        val content = Files.readString(modifiedFile)
-        println("Content: $content")
+//        val content = Files.readString(modifiedFile)
+//        println("Content: $content")
     }
 //
 //    val originalMethod = StaticJavaParser.parseMethodDeclaration("""

@@ -7,7 +7,13 @@ import com.github.javaparser.symbolsolver.JavaSymbolSolver
 import com.github.javaparser.symbolsolver.resolution.typesolvers.CombinedTypeSolver
 import com.github.javaparser.symbolsolver.resolution.typesolvers.JavaParserTypeSolver
 import com.github.javaparser.symbolsolver.resolution.typesolvers.ReflectionTypeSolver
-import refactor.refactorings.removeDuplication.type4Clones.Type4CloneExtractor
+import refactor.refactorings.collapseNestedIfStatements.CollapseNestedIfStatements
+import refactor.refactorings.reformat.Reformat
+import refactor.refactorings.removeDuplication.RemoveDuplication
+import refactor.refactorings.removeRedundantTernaryOperators.RemoveRedundantTernaryOperators
+import refactor.refactorings.replaceConcatentationWithStringBuilder.ReplaceConcatenationWithStringBuilder
+import refactor.refactorings.replaceForWithForEach.ReplaceForLoopsWithForEach
+import refactor.refactorings.replaceUtilityClassesWithSingletons.ReplaceUtilityClassesWithSingletons
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
@@ -27,9 +33,12 @@ class RefactorService(projectRootString: String) {
     private val symbolSolver = JavaSymbolSolver(typeSolver)
 
     init {
+        println("Initializing JavaParser...")
         val parserConfig = ParserConfiguration()
             .setSymbolResolver(symbolSolver)
+        println("JavaParser initialized.")
         StaticJavaParser.setConfiguration(parserConfig)
+        println("JavaParser configuration set.")
     }
 
     fun refactor(): Map<Path, List<String>> {
@@ -53,6 +62,7 @@ class RefactorService(projectRootString: String) {
 
             modifiedPaths.forEach { path ->
                 modifiedFiles.getOrPut(path) { mutableListOf() }.add(it.javaClass.simpleName)
+                println("Modified: $path")
             }
         }
 
@@ -62,7 +72,8 @@ class RefactorService(projectRootString: String) {
         println("Refactoring complete")
 
         // Save the refactored Java files
-        //saveRefactoredJavaFiles(cus)
+        saveRefactoredJavaFiles(cus)
+
 
         return modifiedFiles
     }
@@ -76,16 +87,14 @@ class RefactorService(projectRootString: String) {
 
     private fun loadRefactorings(): List<Refactoring> {
         return listOf(
-            Type4CloneExtractor()
-//            ReplaceConcatenationWithStringBuilder()
-//            ReplaceUtilityClassesWithSingletons()
-//            CollapseNestedIfStatements()
-//            RemoveRedundantTernaryOperators()
-//            ReplaceForLoopsWithForEach()
-//            Type1CloneExtractor()
-//            Type2CloneExtractor()
-//            refactor.refactorings.removeDuplication.type3Clones.Type3CloneExtractor()
-
+            //RecursionToIterationProcessor(),
+//            Reformat(),
+//            ReplaceConcatenationWithStringBuilder(),
+//            ReplaceUtilityClassesWithSingletons(),
+//            CollapseNestedIfStatements(),
+//            RemoveRedundantTernaryOperators(),
+//            ReplaceForLoopsWithForEach(),
+              RemoveDuplication()
         )
     }
 }

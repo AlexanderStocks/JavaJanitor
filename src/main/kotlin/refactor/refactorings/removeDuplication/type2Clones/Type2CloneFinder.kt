@@ -5,11 +5,13 @@ import refactor.refactorings.removeDuplication.common.ProcessedMethod
 import refactor.refactorings.removeDuplication.common.cloneFinders.BaseCloneFinder
 
 class Type2CloneFinder : BaseCloneFinder() {
-    override fun find(methodsAndMetrics: List<ProcessedMethod>): List<List<MethodDeclaration>> {
-        return findClones(methodsAndMetrics) { methodsWithSameMetrics ->
+    private val elementReplacers = listOf(Type2CloneElementReplacer::replace)
+
+    override fun find(methods: List<MethodDeclaration>): List<List<MethodDeclaration>> {
+        return findClones(methods.map { ProcessedMethod(it, elementReplacers) }) { methodsWithSameMetrics ->
             methodsWithSameMetrics.groupBy { method ->
                 Type2CloneElementReplacer.replace(method.normalisedMethod).body
             }.values.toList()
-        }.map { methods -> methods.map { method -> method.method } }
+        }.map { it.map { method -> method.method } }
     }
 }

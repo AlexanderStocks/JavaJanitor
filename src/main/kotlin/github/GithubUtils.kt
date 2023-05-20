@@ -10,51 +10,85 @@ import kotlin.io.path.deleteIfExists
 import kotlin.system.exitProcess
 
 class GithubUtils(private val githubAPI: GithubAPI, private val installationAccessToken: String) {
-    fun processRepo(originalRepo: GHRepository) {
-        val branches = githubAPI.getBranches(originalRepo.ownerName, originalRepo.name, installationAccessToken)
-        val mainBranch = branches.find { it.name == "main" } ?: run {
+    fun processRepository(ghRepository: GHRepository) {
+        println("Processing ${ghRepository.fullName}...")
+        val newBranchName = setBranchName(ghRepository)
+        println("branchName: $newBranchName")
+
+        val repoPath = setupRepo(ghRepository, newBranchName)
+        println("setupRepo: $repoPath")
+        val refactoringService = RefactorService(repoPath)
+        println("Refactoring ${ghRepository.fullName}...")
+        val modifiedFiles = refactoringService.refactor()
+        println("Refactored ${modifiedFiles.size} files.")
+        val refactoringCount = uploadModifiedFiles(repoPath, ghRepository, modifiedFiles, newBranchName)
+        println("Created pull request with $refactoringCount refactorings.")
+        createPullRequest(ghRepository, newBranchName, modifiedFiles.size, refactoringCount)
+        cleanUpRepo(repoPath)
+    }
+
+    private fun setBranchName(ghRepository: GHRepository): String {
+        val baseBranchName = "refactoringJanitor"
+        var newBranchName = baseBranchName
+        var i = 1
+
+        // If the branch already exists, append a number to the end.
+        try {
+            ghRepository.getBranch(newBranchName)
+        } catch (e: Exception) {
+            println("Branch $newBranchName does not exist.")
+        }
+//        while (ghRepository.getBranch(newBranchName) != null) {
+//            newBranchName = "$baseBranchName${i++}"
+//        }
+
+        return newBranchName
+    }
+
+    private fun setupRepo(ghRepository: GHRepository, newBranchName: String): String {
+        val branches = githubAPI.getBranches(ghRepository.ownerName, ghRepository.name, installationAccessToken)
+        println("branches: $branches")
+        val mainBranch = branches.find { it.name == "main" || it.name == "master" } ?: run {
             println("Main branch not found.")
             exitProcess(-1)
         }
 
-        val newBranchName = "RefactoringJanitor"
         githubAPI.createBranch(
-            originalRepo.ownerName, originalRepo.name, newBranchName, mainBranch.commit.sha, installationAccessToken
+            ghRepository.ownerName, ghRepository.name, newBranchName, mainBranch.commit.sha, installationAccessToken
         )
 
         val repoName = githubAPI.cloneRepo(
-            installationAccessToken, originalRepo.ownerName, originalRepo.name, "src/main/resources"
+            installationAccessToken, ghRepository.ownerName, ghRepository.name, "src/main/resources"
         )
-        val repoPath = "C:\\Users\\Stock\\IdeaProjects\\JavaJanitor\\src\\main\\resources\\${repoName?.removeSuffix(".zip")}"
+        println("Cloned repo to $repoName")
 
-        val refactoringService = RefactorService(repoPath)
-        val modifiedFiles = refactoringService.refactor()
+        return "C:\\Users\\Stock\\IdeaProjects\\JavaJanitor\\src\\main\\resources\\${repoName?.removeSuffix(".zip")}"
+    }
+
+    private fun uploadModifiedFiles(
+        repoPath: String, ghRepository: GHRepository, modifiedFiles: Map<Path, List<String>>, newBranchName: String
+    ): Map<String, Int> {
         val refactoringCount = mutableMapOf<String, Int>()
 
         modifiedFiles.forEach { (modifiedFile, refactorings) ->
             updateFileContent(
-                repoPath, modifiedFile, refactorings, originalRepo, newBranchName, refactoringCount
+                repoPath, modifiedFile, refactorings, ghRepository, newBranchName, refactoringCount
             )
         }
-
-        createPullRequest(
-            originalRepo, newBranchName, modifiedFiles.size, refactoringCount
-        )
-
-        cleanUpRepo(repoPath)
+        return refactoringCount
     }
 
     private fun updateFileContent(
         repoPath: String,
         modifiedFile: Path,
         refactorings: List<String>,
-        originalRepo: GHRepository,
+        ghRepository: GHRepository,
         newBranchName: String,
         refactoringCount: MutableMap<String, Int>
     ) {
         val modifiedFileRelativePath = Path(repoPath).relativize(modifiedFile).toString().replace("\\", "/")
         val contents = githubAPI.getFileContent(
-            installationAccessToken, originalRepo.ownerName, originalRepo.name, modifiedFileRelativePath
+            installationAccessToken, ghRepository.ownerName, ghRepository.name, modifiedFileRelativePath
         )
 
         val commitMessage = buildString {
@@ -73,8 +107,8 @@ class GithubUtils(private val githubAPI: GithubAPI, private val installationAcce
 
 
         githubAPI.updateContent(
-            originalRepo.ownerName,
-            originalRepo.name,
+            ghRepository.ownerName,
+            ghRepository.name,
             modifiedFileRelativePath,
             commitMessage,
             javaFileToBase64(modifiedFile.toFile()),
@@ -85,7 +119,7 @@ class GithubUtils(private val githubAPI: GithubAPI, private val installationAcce
     }
 
     private fun createPullRequest(
-        originalRepo: GHRepository,
+        ghRepository: GHRepository,
         newBranchName: String,
         numberOfModifiedFiles: Int,
         refactoringCount: Map<String, Int>
@@ -100,7 +134,7 @@ class GithubUtils(private val githubAPI: GithubAPI, private val installationAcce
         }
 
         githubAPI.createPullRequest(
-            installationAccessToken, originalRepo.ownerName, originalRepo.name, prTitle, prBody, newBranchName, "main"
+            installationAccessToken, ghRepository.ownerName, ghRepository.name, prTitle, prBody, newBranchName, "main"
         )
     }
 
