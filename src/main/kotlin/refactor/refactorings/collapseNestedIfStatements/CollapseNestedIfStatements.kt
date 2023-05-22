@@ -23,9 +23,16 @@ class CollapseNestedIfStatements : Refactoring {
         val ifStmts = cu.findAll(IfStmt::class.java)
 
         ifStmts.forEach { ifStmt ->
+            if (ifStmt.elseStmt.isPresent) return@forEach
+
             if (ifStmt.thenStmt is BlockStmt) {
                 val blockStmt = ifStmt.thenStmt as BlockStmt
-                if (blockStmt.statements.size == 1 && blockStmt.statements[0] is IfStmt) {
+
+                // Only perform the refactoring if the block contains a single statement
+                // that is an IfStmt and does not have an else statement.
+                if (blockStmt.statements.size == 1
+                    && blockStmt.statements[0] is IfStmt
+                    && !(blockStmt.statements[0] as IfStmt).elseStmt.isPresent) {
                     val nestedIfStmt = blockStmt.statements[0] as IfStmt
                     val combinedCondition = BinaryExpr(ifStmt.condition, nestedIfStmt.condition, BinaryExpr.Operator.AND)
                     ifStmt.condition = combinedCondition
@@ -34,4 +41,5 @@ class CollapseNestedIfStatements : Refactoring {
             }
         }
     }
+
 }
