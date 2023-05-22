@@ -62,6 +62,8 @@ class GithubAPI {
     fun createPullRequest(
         accessToken: String, owner: String, repo: String, title: String, body: String, head: String, base: String
     ) {
+        println("Creating pull request with base branch: $base, head branch: $head")
+
         val apiUrl = "/repos/$owner/$repo/pulls"
         val messageBody = "{\"title\":\"$title\",\"body\":\"$body\",\"head\":\"$head\",\"base\":\"$base\"}"
         val request = buildRequest(apiUrl, HttpMethod.Post, accessToken, messageBody)
@@ -69,7 +71,7 @@ class GithubAPI {
         val response = runBlocking { client.request(request) }
 
         if (!response.status.isSuccess()) {
-            println("Error creating pull request: ${response.status}")
+            println("Error creating pull request: ${response.status}, ${runBlocking { response.bodyAsText()}}")
         } else {
             println("Success $response")
         }
@@ -83,7 +85,7 @@ class GithubAPI {
         return Gson().fromJson(response, RepositoryContents::class.java)
     }
 
-    fun updateContent(
+    suspend fun updateContent(
         owner: String,
         repo: String,
         path: String,
@@ -97,8 +99,10 @@ class GithubAPI {
         val requestBody = "{\"message\":\"$message\",\"content\":\"$content\",\"sha\":\"$sha\", \"branch\":\"$branch\"}"
         val request = buildRequest(contentUrl, HttpMethod.Put, accessToken, requestBody)
 
-        return runBlocking { client.request(request).bodyAsText() }
+        return client.request(request).bodyAsText()
     }
+
+
 
     fun createBranch(
         owner: String, repo: String, newBranchName: String, shaToBranchFrom: String, accessToken: String

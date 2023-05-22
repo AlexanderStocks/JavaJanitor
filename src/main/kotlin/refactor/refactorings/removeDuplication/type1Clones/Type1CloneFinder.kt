@@ -9,10 +9,9 @@ class Type1CloneFinder : BaseCloneFinder() {
         methods: List<MethodDeclaration>
     ): List<List<MethodDeclaration>> {
         return findClones(methods.map { ProcessedMethod(it) }) { methodGroupsByMetrics ->
-            methodGroupsByMetrics.filter { it.normalisedMethod.body.isPresent && it.normalisedMethod.body.get().statements.size > 0 }
-                .groupBy { method ->
-                    method.normalisedMethod.body
-                }.values.toList()
+            methodGroupsByMetrics.groupBy { method ->
+                method.normalisedMethod.body
+            }.values.toList()
         }.map { it.map { method -> method.method } }
     }
 }

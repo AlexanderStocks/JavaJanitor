@@ -22,12 +22,14 @@ class RemoveDuplication : Refactoring {
     )
 
     override fun process(projectRoot: Path, cus: List<CompilationUnit>): List<Path> {
-        val modifiedFiles = mutableListOf<Path>()
+        val modifiedFiles = mutableSetOf<Path>()
 
         cus.forEach { cu ->
             val methods = cu.findAll(MethodDeclaration::class.java)
+                .filter { it.body.isPresent && it.body.get().statements.isNonEmpty }.toMutableList()
             cloneTypes.forEach { (finder, extractor) ->
-                val clones = finder.find(methods)
+                println("methods: ${methods.size}")
+                val clones = finder.find(methods).filter { it.size > 1 }
                 val extractedMethods = extractor.process(cu, projectRoot, clones)
                 methods.removeAll(extractedMethods)
 
@@ -37,6 +39,6 @@ class RemoveDuplication : Refactoring {
             }
         }
 
-        return modifiedFiles
+        return modifiedFiles.toList()
     }
 }

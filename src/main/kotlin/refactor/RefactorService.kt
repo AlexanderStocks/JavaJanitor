@@ -91,10 +91,10 @@ class RefactorService(projectRootString: String) {
 //            Reformat(),
 //            ReplaceConcatenationWithStringBuilder(),
 //            ReplaceUtilityClassesWithSingletons(),
-//            CollapseNestedIfStatements(),
+            CollapseNestedIfStatements()
 //            RemoveRedundantTernaryOperators(),
 //            ReplaceForLoopsWithForEach(),
-              RemoveDuplication()
+//            RemoveDuplication()
         )
     }
 }

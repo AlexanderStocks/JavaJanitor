@@ -1,5 +1,7 @@
 package github
 
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import org.kohsuke.github.GHRepository
 import refactor.RefactorService
 import utils.Utils.javaFileToBase64
@@ -10,42 +12,43 @@ import kotlin.io.path.deleteIfExists
 import kotlin.system.exitProcess
 
 class GithubUtils(private val githubAPI: GithubAPI, private val installationAccessToken: String) {
-    fun processRepository(ghRepository: GHRepository) {
+    suspend fun processRepository(ghRepository: GHRepository) {
         println("Processing ${ghRepository.fullName}...")
-        val newBranchName = setBranchName(ghRepository)
-        println("branchName: $newBranchName")
+        coroutineScope { // Create a custom scope for the repository
+            val newBranchName = setBranchName(ghRepository)
+            println("branchName: $newBranchName")
 
-        val repoPath = setupRepo(ghRepository, newBranchName)
-        println("setupRepo: $repoPath")
-        val refactoringService = RefactorService(repoPath)
-        println("Refactoring ${ghRepository.fullName}...")
-        val modifiedFiles = refactoringService.refactor()
-        println("Refactored ${modifiedFiles.size} files.")
-        val refactoringCount = uploadModifiedFiles(repoPath, ghRepository, modifiedFiles, newBranchName)
-        println("Created pull request with $refactoringCount refactorings.")
-        createPullRequest(ghRepository, newBranchName, modifiedFiles.size, refactoringCount)
-        cleanUpRepo(repoPath)
+            val (repoPath, baseBranchName) = setupRepo(ghRepository, newBranchName)
+            println("setupRepo: $repoPath")
+
+            val refactoringService = RefactorService(repoPath)
+            println("Refactoring ${ghRepository.fullName}...")
+            val modifiedFiles = refactoringService.refactor()
+            println("Refactored ${modifiedFiles.size} files.")
+            val refactoringCount = uploadModifiedFiles(repoPath, ghRepository, modifiedFiles, newBranchName)
+            println("Created pull request with $refactoringCount refactorings.")
+
+            createPullRequest(ghRepository, newBranchName, baseBranchName, modifiedFiles.size, refactoringCount)
+
+            cleanUpRepo(repoPath)
+        }
     }
 
     private fun setBranchName(ghRepository: GHRepository): String {
         val baseBranchName = "refactoringJanitor"
         var newBranchName = baseBranchName
         var i = 1
+        val repoBranches = ghRepository.branches
 
-        // If the branch already exists, append a number to the end.
-        try {
-            ghRepository.getBranch(newBranchName)
-        } catch (e: Exception) {
-            println("Branch $newBranchName does not exist.")
+
+        while (repoBranches.containsKey(newBranchName)) {
+            newBranchName = "$baseBranchName${i++}"
         }
-//        while (ghRepository.getBranch(newBranchName) != null) {
-//            newBranchName = "$baseBranchName${i++}"
-//        }
 
         return newBranchName
     }
 
-    private fun setupRepo(ghRepository: GHRepository, newBranchName: String): String {
+    private fun setupRepo(ghRepository: GHRepository, newBranchName: String): Pair<String, String> {
         val branches = githubAPI.getBranches(ghRepository.ownerName, ghRepository.name, installationAccessToken)
         println("branches: $branches")
         val mainBranch = branches.find { it.name == "main" || it.name == "master" } ?: run {
@@ -62,23 +65,31 @@ class GithubUtils(private val githubAPI: GithubAPI, private val installationAcce
         )
         println("Cloned repo to $repoName")
 
-        return "C:\\Users\\Stock\\IdeaProjects\\JavaJanitor\\src\\main\\resources\\${repoName?.removeSuffix(".zip")}"
+        return Pair(
+            "C:\\Users\\Stock\\IdeaProjects\\JavaJanitor\\src\\main\\resources\\${repoName?.removeSuffix(".zip")}",
+            mainBranch.name
+        )
     }
 
-    private fun uploadModifiedFiles(
+    private suspend fun uploadModifiedFiles(
         repoPath: String, ghRepository: GHRepository, modifiedFiles: Map<Path, List<String>>, newBranchName: String
-    ): Map<String, Int> {
+    ): Map<String, Int> = coroutineScope {
         val refactoringCount = mutableMapOf<String, Int>()
 
-        modifiedFiles.forEach { (modifiedFile, refactorings) ->
-            updateFileContent(
-                repoPath, modifiedFile, refactorings, ghRepository, newBranchName, refactoringCount
-            )
-        }
-        return refactoringCount
+        modifiedFiles.map { (modifiedFile, refactorings) ->
+            async {
+                updateFileContent(
+                    repoPath, modifiedFile, refactorings, ghRepository, newBranchName, refactoringCount
+                )
+            }
+        }.forEach { it.await() }
+
+
+        refactoringCount
     }
 
-    private fun updateFileContent(
+
+    private suspend fun updateFileContent(
         repoPath: String,
         modifiedFile: Path,
         refactorings: List<String>,
@@ -121,6 +132,7 @@ class GithubUtils(private val githubAPI: GithubAPI, private val installationAcce
     private fun createPullRequest(
         ghRepository: GHRepository,
         newBranchName: String,
+        baseBranchName: String,
         numberOfModifiedFiles: Int,
         refactoringCount: Map<String, Int>
     ) {
@@ -134,7 +146,13 @@ class GithubUtils(private val githubAPI: GithubAPI, private val installationAcce
         }
 
         githubAPI.createPullRequest(
-            installationAccessToken, ghRepository.ownerName, ghRepository.name, prTitle, prBody, newBranchName, "main"
+            installationAccessToken,
+            ghRepository.ownerName,
+            ghRepository.name,
+            prTitle,
+            prBody,
+            newBranchName,
+            baseBranchName
         )
     }
 
