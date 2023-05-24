@@ -49,7 +49,7 @@ fun main() {
 //
 //        println("Name: ${repo.name}, Full Name: ${repo.fullName}, Size: ${repo.size}, URL: ${repo.htmlUrl}")
 
-        val refactoringService = RefactorService(localPath)
+        val refactoringService = RefactorService(Paths.get(localPath))
         val methodsBeforeRefactoring = getMethods(localPath)
         val metricsBeforeRefactoring = methodsBeforeRefactoring.map { metricsCalculator.process(it) }
         val avgMetricsBeforeRefactoring = averageMetrics(metricsBeforeRefactoring)
@@ -58,7 +58,7 @@ fun main() {
         val cpuUsageBefore = operatingSystemMXBean.systemLoadAverage
 
         // Refactor
-        val modifiedFiles = refactoringService.refactor()
+        //val modifiedFiles = refactoringService.refactor()
 
         val methodsAfterRefactoring = getMethods(localPath)
         val metricsAfterRefactoring = methodsAfterRefactoring.map {  metricsCalculator.process(it) }

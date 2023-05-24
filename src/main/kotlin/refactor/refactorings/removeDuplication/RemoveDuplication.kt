@@ -21,24 +21,33 @@ class RemoveDuplication : Refactoring {
         Type4CloneFinder(threshold) to TestableCloneExtractor()
     )
 
-    override fun process(projectRoot: Path, cus: List<CompilationUnit>): List<Path> {
-        val modifiedFiles = mutableSetOf<Path>()
+    override fun process(projectRoot: Path, cus: List<CompilationUnit>): List<CompilationUnit> {
+        val modifiedFiles = mutableSetOf<CompilationUnit>()
 
         cus.forEach { cu ->
+            println("Processing Compilation Unit: ${cu.storage.get().path}") // Debugging
+
             val methods = cu.findAll(MethodDeclaration::class.java)
                 .filter { it.body.isPresent && it.body.get().statements.isNonEmpty }.toMutableList()
+
             cloneTypes.forEach { (finder, extractor) ->
-                println("methods: ${methods.size}")
                 val clones = finder.find(methods).filter { it.size > 1 }
+
+                println("Found ${clones.size} clone(s) with finder: ${finder.javaClass.simpleName}") // Debugging
+
                 val extractedMethods = extractor.process(cu, projectRoot, clones)
                 methods.removeAll(extractedMethods)
 
                 if (extractedMethods.isNotEmpty()) {
-                    modifiedFiles.add(cu.storage.get().path)
+                    println("Extracted methods with extractor: ${extractor.javaClass.simpleName}") // Debugging
+                    modifiedFiles.add(cu)
                 }
             }
         }
 
+        println("Modified files: ${modifiedFiles.joinToString()}") // Debugging
+
         return modifiedFiles.toList()
     }
+
 }

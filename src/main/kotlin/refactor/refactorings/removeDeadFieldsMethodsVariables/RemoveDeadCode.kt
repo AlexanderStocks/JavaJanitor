@@ -11,14 +11,14 @@ import java.nio.file.Path
 
 class RemoveDeadCode : Refactoring {
 
-    override fun process(projectRoot: Path, cus: List<CompilationUnit>): List<Path> {
+    override fun process(projectRoot: Path, cus: List<CompilationUnit>): List<CompilationUnit> {
         return cus.mapNotNull { removeDeadCodeAndSave(it) }
     }
 
-    private fun removeDeadCodeAndSave(cu: CompilationUnit): Path? {
+    private fun removeDeadCodeAndSave(cu: CompilationUnit): CompilationUnit? {
         val originalCuString = cu.toString()
         removeDeadCode(cu)
-        return if (originalCuString != cu.toString()) cu.storage.get().path else null
+        return if (originalCuString != cu.toString()) cu else null
     }
 
     private fun removeDeadCode(cu: CompilationUnit) {

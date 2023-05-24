@@ -6,6 +6,10 @@ import com.google.gson.Gson
 import github.apiFormats.AccessTokenResponse
 import github.apiFormats.Branch
 import github.apiFormats.RepositoryContents
+import github.apiFormats.commit.Blob
+import github.apiFormats.commit.Commit
+import github.apiFormats.commit.Tree
+import github.apiFormats.commit.TreeEntry
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.call.body
@@ -16,18 +20,26 @@ import io.ktor.http.*
 import io.ktor.http.content.*
 import io.ktor.server.http.content.*
 import kotlinx.coroutines.runBlocking
+import org.eclipse.jgit.api.Git
+import org.eclipse.jgit.transport.RefSpec
+import org.kohsuke.github.GHCommit
+import org.kohsuke.github.GitHub
+import org.kohsuke.github.GHAppInstallation
+
 import utils.Utils
 import java.io.File
 import java.io.FileOutputStream
+import java.nio.file.Path
 import java.util.*
 
 class GithubAPI {
 
+    private var accessToken = ""
     private val client = HttpClient(Apache)
     private val baseUrl = "https://api.github.com"
 
     private fun buildRequest(
-        url: String, method: HttpMethod, accessToken: String, body: String? = null
+        url: String, method: HttpMethod, body: String? = null
     ): HttpRequestBuilder {
         return HttpRequestBuilder().apply {
             this.url("$baseUrl$url")
@@ -37,7 +49,7 @@ class GithubAPI {
             this.header("X-GitHub-Api-Version", "2022-11-28")
             if (body != null) {
                 this.setBody(TextContent(body, ContentType.Application.Json))
-                println("text body ${TextContent(body, ContentType.Application.Json)}")
+                println("text body ${this.body}")
             }
         }
     }
@@ -53,20 +65,20 @@ class GithubAPI {
 
         return buildString {
             append("Request Details:\n")
-            append("Method: $method\n")
+            append("Method: ${method.value}\n")
             append("URL: $url\n")
             append("Headers:\n$headers")
         }
     }
 
     fun createPullRequest(
-        accessToken: String, owner: String, repo: String, title: String, body: String, head: String, base: String
+        owner: String, repo: String, title: String, body: String, head: String, base: String
     ) {
         println("Creating pull request with base branch: $base, head branch: $head")
 
         val apiUrl = "/repos/$owner/$repo/pulls"
         val messageBody = "{\"title\":\"$title\",\"body\":\"$body\",\"head\":\"$head\",\"base\":\"$base\"}"
-        val request = buildRequest(apiUrl, HttpMethod.Post, accessToken, messageBody)
+        val request = buildRequest(apiUrl, HttpMethod.Post, messageBody)
         println("Request is ${request.prettyPrint()}")
         val response = runBlocking { client.request(request) }
 
@@ -77,7 +89,7 @@ class GithubAPI {
         }
     }
 
-    fun getFileContent(accessToken: String, owner: String, repo: String, path: String): RepositoryContents {
+    fun getFileContent(owner: String, repo: String, path: String): RepositoryContents {
         val url = "/repos/$owner/$repo/contents/$path"
         println("Getting file content from $url")
         val request = buildRequest(url, HttpMethod.Get, accessToken)
@@ -92,12 +104,11 @@ class GithubAPI {
         message: String,
         content: String,
         sha: String,
-        accessToken: String,
         branch: String
     ): String {
         val contentUrl = "/repos/$owner/$repo/contents/$path"
         val requestBody = "{\"message\":\"$message\",\"content\":\"$content\",\"sha\":\"$sha\", \"branch\":\"$branch\"}"
-        val request = buildRequest(contentUrl, HttpMethod.Put, accessToken, requestBody)
+        val request = buildRequest(contentUrl, HttpMethod.Put, requestBody)
 
         return client.request(request).bodyAsText()
     }
@@ -105,17 +116,17 @@ class GithubAPI {
 
 
     fun createBranch(
-        owner: String, repo: String, newBranchName: String, shaToBranchFrom: String, accessToken: String
+        owner: String, repo: String, newBranchName: String, shaToBranchFrom: String
     ) {
         val gitRefUrl = "/repos/$owner/$repo/git/refs"
         val requestBody = "{\"ref\":\"refs/heads/${newBranchName}\",\"sha\":\"$shaToBranchFrom\"}"
-        val request = buildRequest(gitRefUrl, HttpMethod.Post, accessToken, requestBody)
+        val request = buildRequest(gitRefUrl, HttpMethod.Post, requestBody)
         val response = runBlocking { client.request(request).bodyAsText() }
         println("created branch $response")
     }
 
     fun getBranches(
-        owner: String, repo: String, accessToken: String
+        owner: String, repo: String
     ): List<Branch> {
         val branchesUrl = "/repos/$owner/$repo/branches"
         val request = buildRequest(branchesUrl, HttpMethod.Get, accessToken)
@@ -124,7 +135,7 @@ class GithubAPI {
         return Gson().fromJson(response, Array<Branch>::class.java).toList()
     }
 
-    fun cloneRepo(accessToken: String, owner: String, repo: String, outputDir: String): String? {
+    fun cloneRepo(owner: String, repo: String, outputDir: String): String? {
         val tokenUrl = "/repos/$owner/$repo/zipball"
         val request = buildRequest(tokenUrl, HttpMethod.Get, accessToken)
         val response = runBlocking { client.request(request) }
@@ -174,5 +185,101 @@ class GithubAPI {
     private fun createJwtToken(appId: String, algorithm: Algorithm): String {
         return JWT.create().withIssuer(appId).withIssuedAt(Date(System.currentTimeMillis() - 500000))
             .withExpiresAt(Date(System.currentTimeMillis() + 500000)).sign(algorithm)
+    }
+
+    suspend fun createBlob(
+        owner: String,
+        repo: String,
+        content: String,
+        accessToken: String
+    ): Blob {
+        val blobUrl = "/repos/$owner/$repo/git/blobs"
+        val requestBody = "{\"content\":\"$content\",\"encoding\":\"base64\"}"
+        val request = buildRequest(blobUrl, HttpMethod.Post, requestBody)
+
+        val response = client.request(request)
+        println("Blob response is $response")
+        return Gson().fromJson(response.bodyAsText(), Blob::class.java)
+    }
+
+    suspend fun createTree(
+        owner: String,
+        repo: String,
+        treeEntries: List<TreeEntry>
+    ): Tree {
+        val treeUrl = "/repos/$owner/$repo/git/trees"
+        val requestBody = Gson().toJson(
+            mapOf(
+                "tree" to treeEntries.map {
+                    mapOf(
+                        "path" to it.path,
+                        "mode" to it.mode,
+                        "type" to "blob",
+                        "sha" to it.sha
+                    )
+                }
+            )
+        )
+        val request = buildRequest(treeUrl, HttpMethod.Post, requestBody)
+        val response = client.request(request)
+        println("Tree response is $response")
+        return Gson().fromJson(response.bodyAsText(), Tree::class.java)
+    }
+
+    suspend fun createCommit(
+        owner: String,
+        repo: String,
+        message: String,
+        treeSha: String,
+        parentCommitSha: String,
+    ): Commit {
+        val commitUrl = "/repos/$owner/$repo/git/commits"
+        val requestBody = Gson().toJson(
+            mapOf(
+                "message" to message,
+                "tree" to treeSha,
+                "parents" to listOf(parentCommitSha)
+            )
+        )
+        val request = buildRequest(commitUrl, HttpMethod.Post, requestBody)
+        println("Commit request is ${requestBody}")
+        val response = client.request(request)
+        println("Commit response body is ${response.bodyAsText()} ${response.status}.")
+        return Gson().fromJson(response.bodyAsText(), Commit::class.java)
+    }
+
+    suspend fun updateRef(
+        owner: String,
+        repo: String,
+        ref: String,
+        commitSha: String
+    ) {
+        val refUrl = "/repos/$owner/$repo/git/refs/$ref"
+        val requestBody = "{\"sha\":\"$commitSha\"}"
+        val request = buildRequest(refUrl, HttpMethod.Patch, requestBody)
+        val response = client.request(request)
+        println("Update ref response is $response")
+    }
+
+    private suspend fun getLatestCommitSha(
+        owner: String,
+        repo: String,
+        branch: String,
+    ): String {
+        val branchUrl = "/repos/$owner/$repo/branches/$branch"
+        val request = buildRequest(branchUrl, HttpMethod.Get, accessToken)
+
+        val response = client.request(request)
+        println("Branch info response is $response")
+
+        // We assume that the response is successfully received and it's in the expected format.
+        // Error handling should be added here according to your requirements.
+        val branchInfo = Gson().fromJson(response.bodyAsText(), Branch::class.java)
+
+        return branchInfo.commit.sha
+    }
+
+    public fun setAccessToken(accessToken: String) {
+        this.accessToken = accessToken
     }
 }

@@ -8,15 +8,15 @@ import refactor.Refactoring
 import java.nio.file.Path
 
 class CollapseNestedIfStatements : Refactoring {
-    override fun process(projectRoot: Path, cus: List<CompilationUnit>): List<Path> {
+    override fun process(projectRoot: Path, cus: List<CompilationUnit>): List<CompilationUnit> {
         return cus.mapNotNull { collapseNestedIfStatementsAndSave(it) }
     }
 
-    private fun collapseNestedIfStatementsAndSave(cu: CompilationUnit): Path? {
+    private fun collapseNestedIfStatementsAndSave(cu: CompilationUnit): CompilationUnit? {
         val originalCuString = cu.toString()
         collapseNestedIfStatements(cu)
 
-        return if (originalCuString != cu.toString()) cu.storage.get().path else null
+        return if (originalCuString != cu.toString()) cu else null
     }
 
     private fun collapseNestedIfStatements(cu: CompilationUnit) {

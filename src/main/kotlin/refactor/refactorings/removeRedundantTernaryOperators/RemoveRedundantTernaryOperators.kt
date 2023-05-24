@@ -6,15 +6,15 @@ import refactor.Refactoring
 import java.nio.file.Path
 
 class RemoveRedundantTernaryOperators : Refactoring {
-    override fun process(projectRoot: Path, cus: List<CompilationUnit>): List<Path> {
+    override fun process(projectRoot: Path, cus: List<CompilationUnit>): List<CompilationUnit> {
         return cus.mapNotNull { removeRedundantTernaryOperatorsAndSave(it) }
     }
 
-    private fun removeRedundantTernaryOperatorsAndSave(cu: CompilationUnit): Path? {
+    private fun removeRedundantTernaryOperatorsAndSave(cu: CompilationUnit): CompilationUnit? {
         val originalCuString = cu.toString()
         removeRedundantTernaryOperators(cu)
 
-        return if (originalCuString != cu.toString()) cu.storage.get().path else null
+        return if (originalCuString != cu.toString()) cu else null
     }
 
     private fun removeRedundantTernaryOperators(cu: CompilationUnit) {

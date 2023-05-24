@@ -7,14 +7,14 @@ import refactor.Refactoring
 import java.nio.file.Path
 
 class RemoveEmptyElse : Refactoring {
-    override fun process(projectRoot: Path, cus: List<CompilationUnit>): List<Path> {
+    override fun process(projectRoot: Path, cus: List<CompilationUnit>): List<CompilationUnit> {
         return cus.mapNotNull { removeEmptyElseBlocksAndSave(it) }
     }
 
-    private fun removeEmptyElseBlocksAndSave(cu: CompilationUnit): Path? {
+    private fun removeEmptyElseBlocksAndSave(cu: CompilationUnit): CompilationUnit? {
         val originalCuString = cu.toString()
         removeEmptyElseBlocks(cu)
-        return if (originalCuString != cu.toString()) cu.storage.get().path else null
+        return if (originalCuString != cu.toString()) cu else null
     }
 
     private fun removeEmptyElseBlocks(cu: CompilationUnit) {

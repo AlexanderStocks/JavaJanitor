@@ -1,31 +1,40 @@
-package refactor.refactorings.removeDuplication.common
+package refactor.refactorings.removeDuplication.common.methodCreation
 
 import com.github.javaparser.ast.CompilationUnit
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration
+import com.github.javaparser.ast.body.EnumDeclaration
 import com.github.javaparser.ast.body.MethodDeclaration
 import com.github.javaparser.ast.expr.MethodCallExpr
 import com.github.javaparser.ast.expr.NameExpr
 import com.github.javaparser.ast.stmt.ReturnStmt
 import com.github.javaparser.ast.type.VoidType
+import kotlinx.coroutines.runBlocking
 
 class MethodCreator(private val cu: CompilationUnit) {
     private var methodIndex = 0
     private val methods = cu.findAll(MethodDeclaration::class.java)
+    private val openAiClient = OpenAiClient()
+    private fun getUniqueMethodName(methodBody: String): String {
+        val suggestedNames = runBlocking { openAiClient.askGptForMethodNames(methodBody) }
+        suggestedNames.forEach { suggestedName ->
+            if (methods.none { it.nameAsString == suggestedName }) {
+                return suggestedName
+            }
+        }
 
-    private fun getUniqueMethodName(): String {
 
         var methodName: String
         do {
             methodName = "genericMethod${methodIndex++}"
-        } while (methods.any { it.nameAsString == methodName})
+        } while (methods.any { it.nameAsString == methodName })
         return methodName
     }
 
-    fun create(cloneGroup: List<MethodDeclaration>) : MethodDeclaration {
+    fun create(cloneGroup: List<MethodDeclaration>): MethodDeclaration {
         // Find the method with the smallest number of statements in its body
         val methodWithSmallestBody = cloneGroup.minBy { it.body.orElse(null)?.statements?.size ?: 0 }
 
-        val genericMethodName = getUniqueMethodName()
+        val genericMethodName = getUniqueMethodName(methodWithSmallestBody.body.get().toString())
 
         // Create a new generic method with the common code.
         val genericMethod = methodWithSmallestBody.clone()
@@ -54,12 +63,18 @@ class MethodCreator(private val cu: CompilationUnit) {
             println("Replaced method body with call to generic method in method: ${method.nameAsString}")
         }
 
-        // Add the new generic method to the appropriate class in the CompilationUnit.
-        val targetClass = cu.findFirst(ClassOrInterfaceDeclaration::class.java).get()
+        // Add the new generic method to the appropriate class or enum in the CompilationUnit.
+        val targetClassOrInterface = cu.findFirst(ClassOrInterfaceDeclaration::class.java).orElse(null)
+        val targetEnum = cu.findFirst(EnumDeclaration::class.java).orElse(null)
 
-        targetClass.addMember(genericMethod)
+        when {
+            targetClassOrInterface != null -> targetClassOrInterface.addMember(genericMethod)
+            targetEnum != null -> targetEnum.addMember(genericMethod)
+            else -> throw IllegalStateException("No class, interface or enum found in the compilation unit")
+        }
 
-        println("Added generic method to the target class: ${targetClass.nameAsString}")
+        println("Added generic method to the target class or enum: ${targetClassOrInterface?.nameAsString ?: targetEnum?.nameAsString}")
+
 
         return genericMethod
     }

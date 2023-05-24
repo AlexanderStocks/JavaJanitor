@@ -9,15 +9,15 @@ import refactor.Refactoring
 import java.nio.file.Path
 
 class ReplaceConcatenationWithStringBuilder : Refactoring {
-    override fun process(projectRoot: Path, cus: List<CompilationUnit>): List<Path> {
+    override fun process(projectRoot: Path, cus: List<CompilationUnit>): List<CompilationUnit> {
         return cus.mapNotNull { replaceConcatenationWithStringBuilderAndSave(it) }
     }
 
-    private fun replaceConcatenationWithStringBuilderAndSave(cu: CompilationUnit): Path? {
+    private fun replaceConcatenationWithStringBuilderAndSave(cu: CompilationUnit): CompilationUnit? {
         val originalCuString = cu.toString()
         replaceConcatenationWithStringBuilder(cu)
 
-        return if (originalCuString != cu.toString()) cu.storage.get().path else null
+        return if (originalCuString != cu.toString()) cu else null
     }
 
     private fun replaceConcatenationWithStringBuilder(cu: CompilationUnit) {
@@ -26,9 +26,18 @@ class ReplaceConcatenationWithStringBuilder : Refactoring {
         binaryExprs.filter { it.operator == BinaryExpr.Operator.PLUS }
             .filter { it.left is StringLiteralExpr || it.right is StringLiteralExpr }
             .forEach { binaryExpr ->
-                val stringBuilderExpr = createStringBuilderExpression(binaryExpr)
-                binaryExpr.replace(stringBuilderExpr)
+                if (countConcatenation(binaryExpr) > 1) {
+                    val stringBuilderExpr = createStringBuilderExpression(binaryExpr)
+                    binaryExpr.replace(stringBuilderExpr)
+                }
             }
+    }
+
+    private fun countConcatenation(expr: Expression): Int {
+        if (expr is BinaryExpr && expr.operator == BinaryExpr.Operator.PLUS) {
+            return countConcatenation(expr.left) + countConcatenation(expr.right)
+        }
+        return 0
     }
 
     private fun createStringBuilderExpression(binaryExpr: BinaryExpr): Expression {
@@ -47,5 +56,5 @@ class ReplaceConcatenationWithStringBuilder : Refactoring {
 
         return StaticJavaParser.parseExpression(stringBuilder.toString())
     }
-
 }
+

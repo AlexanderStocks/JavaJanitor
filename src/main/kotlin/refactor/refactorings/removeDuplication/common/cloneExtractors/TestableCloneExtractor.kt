@@ -12,15 +12,23 @@ class TestableCloneExtractor : CloneExtractor() {
         cloneGroup: List<MethodDeclaration>,
         projectRoot: Path
     ): Optional<MethodDeclaration> {
-        val createdMethod = super.applyRefactoringAndTest(cu, cloneGroup, projectRoot)
-        val testRunner = TestRunner.create(projectRoot.toString())
-        if (createdMethod.isPresent) {
-            val testResults = testRunner.runTests()
-            if (!testResults.all { it.isSuccessful }) {
-                return Optional.empty()
-            }
-        }
+        return try {
+            val createdMethod = super.applyRefactoringAndTest(cu, cloneGroup, projectRoot)
+            val testRunner = TestRunner.create(projectRoot.toString())
 
-        return createdMethod
+            if (createdMethod.isPresent) {
+                val testResults = testRunner.runTests()
+                if (!testResults.all { it.isSuccessful }) {
+                    return Optional.empty()
+                }
+            }
+
+            createdMethod
+        } catch (e: Exception) {
+            println("Error during refactoring and testing: ${e.message}")
+            e.printStackTrace()
+            Optional.empty()
+        }
     }
+
 }

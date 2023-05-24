@@ -3,6 +3,7 @@ package utils
 import com.auth0.jwt.algorithms.Algorithm
 import com.google.gson.Gson
 import github.apiFormats.InitialiseEvent
+import github.apiFormats.InstallationRepositoriesEvent
 import github.apiFormats.Repository
 import github.apiFormats.push.PushEvent
 import org.bouncycastle.openssl.PEMKeyPair
@@ -30,7 +31,7 @@ object Utils {
 
     fun parseWebhookPayload(body: String, eventType: String): Any? {
         return when (eventType) {
-            "installation", "installation_repositories" -> {
+            "installation" -> {
                 try {
                     Gson().fromJson(body, InitialiseEvent::class.java)
                 } catch (e: Exception) {
@@ -47,6 +48,16 @@ object Utils {
                     exitProcess(1)
                 }
             }
+
+            "installation_repositories" -> {
+                try {
+                    Gson().fromJson(body, InstallationRepositoriesEvent::class.java)
+                } catch (e: Exception) {
+                    println("Failed to parse installation_repositories webhook: ${e.message}")
+                    exitProcess(1)
+                }
+            }
+
 
             else -> {
                 println("Unsupported event type: $eventType")
@@ -86,6 +97,7 @@ object Utils {
     fun getReposWithIds(payload: Any): List<Pair<Repository, Int>> = when (payload) {
         is InitialiseEvent -> payload.repositories.map { it to payload.installation.id }
         is PushEvent -> listOf(payload.repository to payload.installation.id)
+        is InstallationRepositoriesEvent -> payload.repositories_added.map { it to payload.installation.id }
         else -> {
             println("Unsupported payload type")
             emptyList()

@@ -50,8 +50,8 @@ class GradleTestRunner(private val projectLocation: String) : TestRunner {
             try {
                 buildLauncher.run()
             } catch (e: GradleConnectionException) {
-                println("Gradle connection failed. Passing the tests.")
-                testResults.add(TestResult("Gradle connection failed", true))
+                println("Gradle connection failed. Failing the tests.")
+                testResults.add(TestResult("Gradle connection failed", false))
             } catch (e: IllegalStateException) {
                 println("Illegal state exception occurred. Failing the tests.")
                 testResults.add(TestResult("Illegal state exception", false))

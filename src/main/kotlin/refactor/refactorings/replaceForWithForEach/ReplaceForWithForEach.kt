@@ -7,15 +7,15 @@ import refactor.Refactoring
 import java.nio.file.Path
 
 class ReplaceForLoopsWithForEach : Refactoring {
-    override fun process(projectRoot: Path, cus: List<CompilationUnit>): List<Path> {
+    override fun process(projectRoot: Path, cus: List<CompilationUnit>): List<CompilationUnit> {
         return cus.mapNotNull { replaceForLoopsWithForEachAndSave(it) }
     }
 
-    private fun replaceForLoopsWithForEachAndSave(cu: CompilationUnit): Path? {
+    private fun replaceForLoopsWithForEachAndSave(cu: CompilationUnit): CompilationUnit? {
         val originalCuString = cu.toString()
         replaceForLoopsWithForEach(cu)
 
-        return if (originalCuString != cu.toString()) cu.storage.get().path else null
+        return if (originalCuString != cu.toString()) cu else null
     }
 
     private fun replaceForLoopsWithForEach(cu: CompilationUnit) {
@@ -32,7 +32,9 @@ class ReplaceForLoopsWithForEach : Refactoring {
 
                     if (variableName == indexName) {
                         val iterableExpr = extractIterableExpression(forLoop.compare.get(), indexName)
-                        if (iterableExpr != null) {
+                        // check if the index is used inside the loop body
+                        val indexUsedInsideBody = forLoop.body.findAll(NameExpr::class.java).any { it.nameAsString == indexName }
+                        if (iterableExpr != null && !indexUsedInsideBody) {
                             val forEachVariable = init.clone()
                             forEachVariable.variables[0].removeInitializer()
 
@@ -49,6 +51,7 @@ class ReplaceForLoopsWithForEach : Refactoring {
             }
         }
     }
+
 
     private fun extractIterableExpression(compare: Expression, indexName: String): Expression? {
         if (compare is BinaryExpr && compare.operator == BinaryExpr.Operator.LESS) {

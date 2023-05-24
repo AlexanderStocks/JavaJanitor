@@ -54,6 +54,7 @@ fun Application.listenToGithubApp() {
                 println("Processing repository: ${repository.full_name}, installationId: $installationId")
                 val installationAccessToken = githubAPI.fetchAccessToken(baseUrl, appId, algorithm, installationId)
                 println("installationAccessToken: $installationAccessToken")
+                githubAPI.setAccessToken(installationAccessToken)
                 val github = createGitHubClient(installationAccessToken)
                 println("github: $github")
                 val githubRepo = github.getRepository(repository.full_name)

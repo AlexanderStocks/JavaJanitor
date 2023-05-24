@@ -6,14 +6,14 @@ import java.nio.file.Path
 
 class RecursionToIterationProcessor : Refactoring{
 
-    override fun process(projectRoot: Path, cus: List<CompilationUnit>): List<Path> {
+    override fun process(projectRoot: Path, cus: List<CompilationUnit>): List<CompilationUnit> {
         return cus.mapNotNull { convertRecursionToIterationAndSave(it) }
     }
 
-    private fun convertRecursionToIterationAndSave(cu: CompilationUnit): Path? {
+    private fun convertRecursionToIterationAndSave(cu: CompilationUnit): CompilationUnit? {
         val originalCuString = cu.toString()
         RecursionConverter().convertRecursionToIteration(cu)
 
-        return if (originalCuString != cu.toString()) cu.storage.get().path else null
+        return if (originalCuString != cu.toString()) cu else null
     }
 }

@@ -2,7 +2,7 @@ package refactor.refactorings.removeDuplication.common.cloneExtractors
 
 import com.github.javaparser.ast.CompilationUnit
 import com.github.javaparser.ast.body.MethodDeclaration
-import refactor.refactorings.removeDuplication.common.MethodCreator
+import refactor.refactorings.removeDuplication.common.methodCreation.MethodCreator
 import java.nio.file.Path
 import java.util.*
 
