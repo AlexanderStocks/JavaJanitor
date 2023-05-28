@@ -14,7 +14,7 @@ import java.nio.file.Path
 class RemoveDuplication : Refactoring {
     private val threshold = 0.7
 
-    private val cloneTypes = mapOf(
+    private val cloneFinders = mapOf(
         Type1CloneFinder() to CloneExtractor(),
         Type2CloneFinder() to CloneExtractor(),
         Type3CloneFinder(threshold) to TestableCloneExtractor(),
@@ -24,29 +24,82 @@ class RemoveDuplication : Refactoring {
     override fun process(projectRoot: Path, cus: List<CompilationUnit>): List<CompilationUnit> {
         val modifiedFiles = mutableSetOf<CompilationUnit>()
 
-        cus.forEach { cu ->
-            println("Processing Compilation Unit: ${cu.storage.get().path}") // Debugging
+        var cuCounter = 0
 
+        var totalClones = 0
+        var totalType1ClonesFound = 0
+        var totalType1ClonesCreated = 0
+        var totalType2ClonesFound = 0
+        var totalType2ClonesCreated = 0
+        var totalType3ClonesFound = 0
+        var totalType3ClonesCreated = 0
+        var totalType4ClonesFound = 0
+        var totalType4ClonesCreated = 0
+
+        cus.forEach { cu ->
             val methods = cu.findAll(MethodDeclaration::class.java)
                 .filter { it.body.isPresent && it.body.get().statements.isNonEmpty }.toMutableList()
 
-            cloneTypes.forEach { (finder, extractor) ->
+            cuCounter++
+            println("CU $cuCounter/${cus.size}")
+
+            var cloneFinderCounter = 0
+            cloneFinders.forEach { (finder, extractor) ->
                 val clones = finder.find(methods).filter { it.size > 1 }
+                if (clones.isNotEmpty()) {
+                    totalClones += clones.size
+                    when (finder) {
+                        is Type4CloneFinder -> {
+                            totalType4ClonesFound += clones.size
+                        }
 
-                println("Found ${clones.size} clone(s) with finder: ${finder.javaClass.simpleName}") // Debugging
+                        is Type3CloneFinder -> {
+                            totalType3ClonesFound += clones.size
+                        }
 
-                val extractedMethods = extractor.process(cu, projectRoot, clones)
-                methods.removeAll(extractedMethods)
+                        is Type2CloneFinder -> {
+                            totalType2ClonesFound += clones.size
+                        }
 
-                if (extractedMethods.isNotEmpty()) {
-                    println("Extracted methods with extractor: ${extractor.javaClass.simpleName}") // Debugging
-                    modifiedFiles.add(cu)
+                        is Type1CloneFinder -> {
+                            totalType1ClonesFound += clones.size
+                        }
+                    }
+
+                    val (sucessfulCreations, extractedMethods) = extractor.process(cu, projectRoot, clones)
+                    when (finder) {
+                        is Type4CloneFinder -> {
+                            totalType4ClonesCreated += sucessfulCreations
+                        }
+
+                        is Type3CloneFinder -> {
+                            totalType3ClonesCreated += sucessfulCreations
+                        }
+
+                        is Type2CloneFinder -> {
+                            totalType2ClonesCreated += sucessfulCreations
+                        }
+
+                        is Type1CloneFinder -> {
+                            totalType1ClonesCreated += sucessfulCreations
+                        }
+                    }
+                    methods.removeAll(extractedMethods)
+
+                    if (extractedMethods.isNotEmpty()) {
+                        modifiedFiles.add(cu)
+                    }
                 }
+
+                cloneFinderCounter++
+                println("Clone finder $cloneFinderCounter/${cloneFinders.size}")
             }
         }
-
-        println("Modified files: ${modifiedFiles.joinToString()}") // Debugging
-
+        println("Total clones found: $totalClones")
+        println("Total Type1 clones found: $totalType1ClonesFound, created: $totalType1ClonesCreated")
+        println("Total Type2 clones found: $totalType2ClonesFound, created: $totalType2ClonesCreated")
+        println("Total Type3 clones found: $totalType3ClonesFound, created: $totalType3ClonesCreated")
+        println("Total Type4 clones found: $totalType4ClonesFound, created: $totalType4ClonesCreated")
         return modifiedFiles.toList()
     }
 

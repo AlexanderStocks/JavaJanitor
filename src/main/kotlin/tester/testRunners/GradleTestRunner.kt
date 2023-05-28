@@ -1,66 +1,61 @@
 package tester.testRunners
 
-import org.gradle.tooling.BuildLauncher
-import org.gradle.tooling.GradleConnectionException
-import org.gradle.tooling.GradleConnector
-import org.gradle.tooling.ProjectConnection
-import org.gradle.tooling.events.OperationType
-import org.gradle.tooling.events.ProgressListener
-import org.gradle.tooling.events.test.TestFinishEvent
-import org.gradle.tooling.events.test.TestFailureResult
-import org.gradle.tooling.events.test.TestSuccessResult
 import tester.TestResult
 import tester.TestRunner
+import java.io.BufferedReader
 import java.io.File
+import java.io.InputStreamReader
 
 class GradleTestRunner(private val projectLocation: String) : TestRunner {
     override fun runTests(): List<TestResult> {
-        val connector = GradleConnector.newConnector()
-        connector.forProjectDirectory(File(projectLocation))
-        val connection: ProjectConnection = connector.connect()
-
         val testResults = mutableListOf<TestResult>()
 
-        connection.use { projectConnection ->
-            val buildLauncher: BuildLauncher = projectConnection.newBuild()
-            buildLauncher.forTasks("test")
+        try {
+            val gradleHome = "C:\\Gradle\\gradle-8.1.1" // Specify the path to your Gradle installation
 
-            val testListener = ProgressListener { event ->
-                if (event is TestFinishEvent) {
-                    val descriptor = event.descriptor
-                    if (descriptor != null && descriptor.parent != null) {
-                        val testName = descriptor.displayName
-                        val isSuccessful = when (event.result) {
-                            is TestSuccessResult -> true
-                            is TestFailureResult -> {
-                                testResults.add(TestResult(testName, false))
-                                false
-                            }
-                            else -> false
+            val command = "cmd /c ${gradleHome}\\bin\\gradle.bat test"
+            val process = Runtime.getRuntime().exec(command, null, File(projectLocation))
+
+            val reader = BufferedReader(InputStreamReader(process.inputStream))
+
+
+            var testName: String
+            var testsRun = 0
+            var failures = 0
+
+            reader.useLines { lines ->
+                lines.forEach { line ->
+                    when {
+                        line.contains("Test run finished after") -> {
+                            testsRun += 1
                         }
-                        if (isSuccessful) {
-                            testResults.add(TestResult(testName, true))
+
+                        line.contains("Test run failed") -> {
+                            failures += 1
+                        }
+
+                        line.contains("> Task :test") -> {
+                            testName = line.substringAfter("> Task :test").trim()
+                            testResults.add(TestResult(testName, testsRun, failures, 0, 0))
+                            testsRun = 0
+                            failures = 0
                         }
                     }
                 }
             }
 
-            buildLauncher.addProgressListener(testListener, OperationType.TEST)
-
-            try {
-                buildLauncher.run()
-            } catch (e: GradleConnectionException) {
-                println("Gradle connection failed. Failing the tests.")
-                testResults.add(TestResult("Gradle connection failed", false))
-            } catch (e: IllegalStateException) {
-                println("Illegal state exception occurred. Failing the tests.")
-                testResults.add(TestResult("Illegal state exception", false))
-            } catch (e: Exception) {
-                println("Running the tests failed.")
-                testResults.add(TestResult("Unexpected exception", false))
-            }
+            process.waitFor()
+        } catch (e: Exception) {
+            println("Error: ${e.message}")
+            testResults.add(TestResult("Errored", 0, 0, 1, 0))
         }
 
         return testResults
+    }
+
+    private fun extractTestName(line: String): String {
+        // Extract the test name from the line, assuming the line is in the format
+        // > Task :test --tests package.ClassName
+        return line.substringAfter("--tests ").trim()
     }
 }

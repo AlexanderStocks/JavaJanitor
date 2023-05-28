@@ -29,11 +29,9 @@ object Type4CloneElementReplacer {
                         }
                     }
                 } catch (e: Exception) {
-                    println("Exception occurred in walk block: ${e.localizedMessage}")
                 }
             }
         } catch (e: Exception) {
-            println("Exception occurred in replace function: ${e.localizedMessage}")
         }
 
         return Type2CloneElementReplacer.replace(method)
@@ -227,7 +225,6 @@ object Type4CloneElementReplacer {
             }
 
             else -> {
-                println("$expr does not contain a VariableDeclarationExpr or an AssignExpr. Type is ${expr.javaClass.name}")
                 Pair("null", "null")
             }
         }

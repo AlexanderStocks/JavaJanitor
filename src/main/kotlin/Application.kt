@@ -9,9 +9,11 @@ import io.ktor.server.netty.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import kotlinx.coroutines.Dispatchers.IO
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import utils.Utils
-import utils.Utils.createGitHubClient
 import java.security.Security
 
 fun main() {
@@ -33,34 +35,55 @@ fun Application.listenToGithubApp() {
             val body = call.receiveText()
             val eventType = call.request.headers["X-GitHub-Event"]
             val payload = Utils.parseWebhookPayload(body, eventType ?: "")
-            val githubAPI = GithubAPI()
-            println("Received event: $eventType, payload: $payload")
+
+            if (payload is PushEvent && payload.pusher.name == "HardcodedCat") {
+                // Event pushed by the bot itself. Ignoring.
+                call.respond(HttpStatusCode.OK)
+                return@post
+            }
 
             if (payload is PushEvent && payload.pusher.name == "refactoringjanitor[bot]") {
-                println("Event pushed by the bot itself. Ignoring.")
+                // Event pushed by the bot itself. Ignoring.
                 call.respond(HttpStatusCode.OK)
                 return@post
             }
 
             //Check if the event is a branch deletion
             if (payload is PushEvent && payload.ref.startsWith("refs/heads/") && payload.deleted) {
-                println("Branch deletion event. Ignoring.")
+                // Branch deletion event. Ignoring.
                 call.respond(HttpStatusCode.OK)
                 return@post
             }
 
-            payload?.let { it1 -> Utils.getReposWithIds(it1) }?.forEach { repoWithId ->
-                val (repository, installationId) = repoWithId
-                println("Processing repository: ${repository.full_name}, installationId: $installationId")
-                val installationAccessToken = githubAPI.fetchAccessToken(baseUrl, appId, algorithm, installationId)
-                println("installationAccessToken: $installationAccessToken")
-                githubAPI.setAccessToken(installationAccessToken)
-                val github = createGitHubClient(installationAccessToken)
-                println("github: $github")
-                val githubRepo = github.getRepository(repository.full_name)
-                println("githubRepo: $githubRepo")
+            println("Received event: $eventType")
 
-                GithubUtils(githubAPI, installationAccessToken).processRepository(githubRepo)
+            runBlocking {
+                payload?.let { it1 -> Utils.getReposWithIds(it1) }?.map { repoWithId ->
+                    launch(IO) {
+                        try {
+                            val processingTime = kotlin.system.measureTimeMillis {
+                                val (repository, installationId) = repoWithId
+                                println("Processing repository: ${repository.full_name}, installationId: $installationId")
+                                val githubAPI = GithubAPI(baseUrl, appId, algorithm, installationId, repository)
+                                val (_, installationAccessToken) = githubAPI.fetchAccessToken()
+                                println("Installation access token: $installationAccessToken")
+                                githubAPI.setAccessToken(installationAccessToken)
+                                try {
+                                    GithubUtils(githubAPI).processRepository()
+                                } catch (e: Exception) {
+                                    println("error is $e")
+                                    e.printStackTrace()
+                                    println("Error processing repository: ${repository.full_name}, installationId: $installationId")
+                                }
+                                println("Processed repository: ${repository.full_name}, installationId: $installationId")
+                            }
+                            print("in $processingTime ms")
+                        } catch (e: Exception) {
+                            println("error is $e")
+                            println("Error processing repository: ${repoWithId.first.full_name}, installationId: ${repoWithId.second}")
+                        }
+                    }
+                }?.forEach { it.join() }
             }
 
             call.respond(HttpStatusCode.OK)

@@ -1,8 +1,11 @@
 package refactor.refactorings.removeDuplication.common.cloneExtractors
 
 import com.github.javaparser.ast.CompilationUnit
+import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration
+import com.github.javaparser.ast.body.EnumDeclaration
 import com.github.javaparser.ast.body.MethodDeclaration
 import refactor.refactorings.removeDuplication.common.methodCreation.MethodCreator
+import tester.TestRunner
 import java.nio.file.Path
 import java.util.*
 
@@ -11,21 +14,21 @@ open class CloneExtractor {
         cu: CompilationUnit,
         projectRoot: Path,
         clones: List<List<MethodDeclaration>>
-    ): List<MethodDeclaration> {
+    ): Pair<Int, List<MethodDeclaration>> {
         val modifiedMethods = mutableListOf<MethodDeclaration>()
 
+        var successfulCreations = 0
+
         clones.forEach { cloneGroup ->
-            val originalCu = cu.clone()
             val createdMethod = applyRefactoringAndTest(cu, cloneGroup, projectRoot)
             if (createdMethod.isPresent) {
+                successfulCreations++
                 modifiedMethods.addAll(cloneGroup)
                 modifiedMethods.add(createdMethod.get())
-            } else {
-                cu.replace(originalCu)
             }
         }
 
-        return modifiedMethods.toList()
+        return Pair(successfulCreations, modifiedMethods.toList())
     }
 
     open fun applyRefactoringAndTest(

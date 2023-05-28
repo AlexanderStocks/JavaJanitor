@@ -63,7 +63,6 @@ class MethodDataset {
                     }
                 }
             } catch (e: IOException) {
-                e.printStackTrace()
             }
         }
         dataset.clear()

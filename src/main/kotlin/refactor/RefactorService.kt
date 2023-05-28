@@ -1,5 +1,6 @@
 package refactor
 
+import builder.BuildRunner
 import com.github.javaparser.ParserConfiguration
 import com.github.javaparser.StaticJavaParser
 import com.github.javaparser.ast.CompilationUnit
@@ -25,86 +26,93 @@ import java.util.stream.Collectors
 class RefactorService(private val projectRoot: Path) {
     private val refactorings: List<Refactoring> = loadRefactorings()
 
-
     private val typeSolver = CombinedTypeSolver(
-        ReflectionTypeSolver(),
-        JavaParserTypeSolver(projectRoot)
+        ReflectionTypeSolver(), JavaParserTypeSolver(projectRoot)
     )
 
     private val symbolSolver = JavaSymbolSolver(typeSolver)
 
     init {
-        println("Initializing JavaParser...")
-        val parserConfig = ParserConfiguration()
-            .setSymbolResolver(symbolSolver)
-        println("JavaParser initialized.")
+        initializeJavaParser()
+    }
+
+    private fun initializeJavaParser() {
+        val parserConfig = ParserConfiguration().setSymbolResolver(symbolSolver)
         StaticJavaParser.setConfiguration(parserConfig)
-        println("JavaParser configuration set.")
     }
 
     fun refactor(
-        github: GithubAPI,
-        ghRepository: GHRepository,
-        newBranchName: String
+        github: GithubAPI, newBranchName: String
     ): Map<String, List<Path>> {
-        println("Parsing Java files...")
+        val cus = parseJavaFiles()
 
-        val cus = Files.walk(projectRoot)
-            .filter { path -> path.toString().endsWith(".java") }
-            .map { path ->
-                try {
-                    StaticJavaParser.parse(path)
-                } catch (e: Exception) {
-                    println("Failed to parse $path")
-                    throw IllegalArgumentException("Failed to parse $path", e)
-                }
+        return try {
+            applyRefactorings(github, newBranchName, cus)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            mapOf()
+        }
+    }
+
+    private fun parseJavaFiles(): List<CompilationUnit> {
+
+        return Files.walk(projectRoot).filter { path -> path.toString().endsWith(".java") }.map { path ->
+            try {
+                StaticJavaParser.parse(path)
+            } catch (e: Exception) {
+                null
             }
-            .collect(Collectors.toList())
+        }.collect(Collectors.toList()).filterNotNull()
 
+    }
+
+
+    private fun applyRefactorings(
+        github: GithubAPI, newBranchName: String, cus: List<CompilationUnit>
+    ): MutableMap<String, MutableList<Path>> {
         val refactoringMap: MutableMap<String, MutableList<Path>> = mutableMapOf()
 
-        // Apply refactorings
         refactorings.forEach { refactoring ->
-            println("Applying ${refactoring.javaClass.simpleName}... ")
-            val modifiedCus = refactoring.process(projectRoot, cus)
+            println("Applying ${refactoring.javaClass.simpleName}")
+            var modifiedCus = refactoring.process(projectRoot, cus)
 
-            // After each refactoring, save the modified files, commit the changes, and push to GitHub
-            modifiedCus.forEach { cu ->
-                refactoringMap.getOrPut(refactoring.javaClass.simpleName) { mutableListOf() }.add(cu.storage.get().path)
-
-                // Save the refactored Java files
-                cu.storage.get().save()
-                println("Saved modified: ${cu.storage.get().path}")
+            if (refactoring !is Reformat) {
+                modifiedCus = reformatCus(modifiedCus)
             }
+
+            saveAndRecordChanges(refactoring, modifiedCus, refactoringMap)
 
             if (modifiedCus.isNotEmpty()) {
-                // Create a commit for the refactoring
                 val commitMessage = "Applied ${refactoring.javaClass.simpleName} to ${modifiedCus.size} files"
-                val latestCommitSha = ghRepository.getRef("heads/$newBranchName").getObject().sha
-                println("Latest commit: $latestCommitSha")
-                val baseTreeSha = ghRepository.getTree(latestCommitSha).sha
-                println("Base tree: $baseTreeSha")
+                val latestCommitSha = github.getRef("heads/$newBranchName").getObject().sha
+                val baseTreeSha = github.getTree(latestCommitSha).sha
 
                 createCommitFromRepo(
-                    github,
-                    ghRepository,
-                    commitMessage,
-                    modifiedCus,
-                    baseTreeSha,
-                    latestCommitSha,
-                    newBranchName
+                    github, commitMessage, modifiedCus, baseTreeSha, latestCommitSha, newBranchName
                 )
             }
-
         }
-
-        println("Refactoring complete")
         return refactoringMap
+    }
+
+    private fun reformatCus(modifiedCus: List<CompilationUnit>): List<CompilationUnit> {
+        return Reformat().process(projectRoot, modifiedCus)
+    }
+
+    private fun saveAndRecordChanges(
+        refactoring: Refactoring,
+        modifiedCus: List<CompilationUnit>,
+        refactoringMap: MutableMap<String, MutableList<Path>>
+    ) {
+        modifiedCus.forEach { cu ->
+            refactoringMap.getOrPut(refactoring.javaClass.simpleName) { mutableListOf() }.add(cu.storage.get().path)
+
+            cu.storage.get().save()
+        }
     }
 
     private fun createCommitFromRepo(
         githubAPI: GithubAPI,
-        ghRepository: GHRepository,
         commitMessage: String,
         modifiedCus: List<CompilationUnit>,
         baseTreeSha: String,
@@ -112,7 +120,7 @@ class RefactorService(private val projectRoot: Path) {
         newBranchName: String
     ) {
         // Step 1: Create blobs for the file contents
-        val treeBuilder = ghRepository.createTree().baseTree(baseTreeSha)
+        val treeBuilder = githubAPI.createTree().baseTree(baseTreeSha)
 
         modifiedCus.forEach { cu ->
             val content = cu.toString()
@@ -121,7 +129,6 @@ class RefactorService(private val projectRoot: Path) {
 
             treeBuilder.add(path.toString().replace("\\", "/"), content, false)
         }
-        println("Added ${modifiedCus.size} blobs to tree")
 
         val tree: GHTree
         try {
@@ -129,25 +136,19 @@ class RefactorService(private val projectRoot: Path) {
         } catch (e: IOException) {
             throw RuntimeException("Failed to create tree", e)
         }
-        println("Created tree: ${tree.sha}")
-
 
         // Step 3: Create the commit
         val commit = runBlocking {
             githubAPI.createCommit(
-                ghRepository.ownerName,
-                ghRepository.name,
                 commitMessage,
                 tree.sha,
                 parentCommitSha,
             )
         }
 
-        println("Created commit: ${commit.sha}")
         // Update the branch to point to the new commit
         try {
-            val ref = ghRepository.getRef("heads/$newBranchName")
-            println("Updating branch reference to ${commit.sha}")
+            val ref = githubAPI.getRef("heads/$newBranchName")
             ref.updateTo(commit.sha, true)
         } catch (e: IOException) {
             throw RuntimeException("Failed to update branch reference", e)

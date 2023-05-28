@@ -8,6 +8,7 @@ object Type2CloneElementReplacer {
     fun replace(method: MethodDeclaration): MethodDeclaration {
         val clonedMethod = method.clone()
 
+        val parameterNames = clonedMethod.parameters.map { it.nameAsString }
         val variableDeclarations = clonedMethod.findAll(VariableDeclarationExpr::class.java)
         val variableDeclarators = variableDeclarations.flatMap { it.variables }
 
@@ -15,7 +16,7 @@ object Type2CloneElementReplacer {
 
         variableDeclarators.forEachIndexed { index, variableDeclarator ->
             val originalName = variableDeclarator.nameAsString
-            val newName = "var${index + 1}"
+            val newName = if (index < parameterNames.size) parameterNames[index] else "var${index + 1}"
             originalToNewNames[originalName] = newName
             variableDeclarator.setName(newName)
         }
@@ -29,3 +30,4 @@ object Type2CloneElementReplacer {
         return clonedMethod
     }
 }
+

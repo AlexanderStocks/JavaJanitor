@@ -1,36 +1,35 @@
 package evaluation
 
-import kotlinx.serialization.*
 import kotlinx.serialization.json.*
-import okhttp3.*
+import okhttp3.OkHttpClient
+import okhttp3.Request
 import java.io.IOException
 
-fun main () {
+fun main() {
     val client = OkHttpClient()
-    val request = Request.Builder()
-        .url("https://api.github.com/search/repositories?q=language:java&sort=size&order=desc")
-        .build()
+    val json = Json { ignoreUnknownKeys = true }
+    val randomIndices = (0..19).shuffled()
 
-    client.newCall(request).enqueue(object : Callback {
-        override fun onFailure(call: Call, e: IOException) {
-            e.printStackTrace()
-        }
+    // start from 1MB (1024KB), increment by 1MB for each request
+    for (size in 1024..10240 step 1024) {
+        val request = Request.Builder()
+            .url("https://api.github.com/search/repositories?q=language:java+size:$size..${size+1023}&sort=stars&order=desc")
+            .build()
 
-        override fun onResponse(call: Call, response: Response) {
-            response.use {
-                if (!response.isSuccessful) throw IOException("Unexpected code $response")
+        val response = client.newCall(request).execute()
+        response.use {
+            if (!response.isSuccessful) throw IOException("Unexpected code $response")
 
-                val body = response.body.string()
-                val json = Json { ignoreUnknownKeys = true }
-                val jsonObject = json.parseToJsonElement(body).jsonObject
-                val items = jsonObject["items"]!!.jsonArray
-                val repositories = items.map { json.decodeFromJsonElement<Repository>(it) }
+            val body = response.body.string()
+            val jsonObject = json.parseToJsonElement(body).jsonObject
+            val items = jsonObject["items"]!!.jsonArray
+            val repositories = items.map { json.decodeFromJsonElement<Repository>(it) }
 
-                repositories.forEach {
-                    println("Name: ${it.name}, Full Name: ${it.full_name}, Size: ${it.size}, URL: ${it.html_url}")
-                }
+            // Print the name of the first repository for this size range
+            if (repositories.isNotEmpty()) {
+                val randomRepository = repositories[randomIndices[size / 1024]]
+                println("Name: ${randomRepository.name}, Full Name: ${randomRepository.full_name}, Size: ${randomRepository.size}, URL: ${randomRepository.html_url}")
             }
         }
-    })
+    }
 }
-

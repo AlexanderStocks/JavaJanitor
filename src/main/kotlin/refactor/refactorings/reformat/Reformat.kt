@@ -23,9 +23,8 @@ class Reformat : Refactoring {
         val formatter = Formatter()
 
         val prettyPrintedString = try {
-            formatter.formatSource(cu.toString())
+            formatter.formatSource(Files.readString(cu.storage.get().path, StandardCharsets.UTF_8))
         } catch (e: FormatterException) {
-            e.printStackTrace()
             return null
         }
 

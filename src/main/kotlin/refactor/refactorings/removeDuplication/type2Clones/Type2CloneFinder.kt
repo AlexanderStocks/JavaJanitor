@@ -10,8 +10,10 @@ class Type2CloneFinder : BaseCloneFinder() {
     override fun find(methods: List<MethodDeclaration>): List<List<MethodDeclaration>> {
         return findClones(methods.map { ProcessedMethod(it, elementReplacers) }) { methodsWithSameMetrics ->
             methodsWithSameMetrics.groupBy { method ->
-                Type2CloneElementReplacer.replace(method.normalisedMethod).body
+                val parameterTypes = method.method.parameters.joinToString { it.type.toString() }
+                parameterTypes to Type2CloneElementReplacer.replace(method.normalisedMethod).body.toString()
             }.values.toList()
         }.map { it.map { method -> method.method } }
     }
+
 }

@@ -31,26 +31,29 @@ class ReplaceForLoopsWithForEach : Refactoring {
                     val indexName = update.expression.toString()
 
                     if (variableName == indexName) {
-                        val iterableExpr = extractIterableExpression(forLoop.compare.get(), indexName)
-                        // check if the index is used inside the loop body
-                        val indexUsedInsideBody = forLoop.body.findAll(NameExpr::class.java).any { it.nameAsString == indexName }
-                        if (iterableExpr != null && !indexUsedInsideBody) {
-                            val forEachVariable = init.clone()
-                            forEachVariable.variables[0].removeInitializer()
+                        forLoop.compare.ifPresent { compare ->
+                            val iterableExpr = extractIterableExpression(compare, indexName)
+                            // check if the index is used inside the loop body
+                            val indexUsedInsideBody = forLoop.body.findAll(NameExpr::class.java).any { it.nameAsString == indexName }
+                            if (iterableExpr != null && !indexUsedInsideBody) {
+                                val forEachVariable = init.clone()
+                                forEachVariable.variables[0].removeInitializer()
 
-                            val forEachStmt = ForEachStmt(
-                                forEachVariable,
-                                iterableExpr,
-                                forLoop.body.clone()
-                            )
+                                val forEachStmt = ForEachStmt(
+                                    forEachVariable,
+                                    iterableExpr,
+                                    forLoop.body.clone()
+                                )
 
-                            forLoop.replace(forEachStmt)
+                                forLoop.replace(forEachStmt)
+                            }
                         }
                     }
                 }
             }
         }
     }
+
 
 
     private fun extractIterableExpression(compare: Expression, indexName: String): Expression? {

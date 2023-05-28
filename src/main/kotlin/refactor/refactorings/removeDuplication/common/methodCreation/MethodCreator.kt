@@ -15,11 +15,15 @@ class MethodCreator(private val cu: CompilationUnit) {
     private val methods = cu.findAll(MethodDeclaration::class.java)
     private val openAiClient = OpenAiClient()
     private fun getUniqueMethodName(methodBody: String): String {
-        val suggestedNames = runBlocking { openAiClient.askGptForMethodNames(methodBody) }
-        suggestedNames.forEach { suggestedName ->
-            if (methods.none { it.nameAsString == suggestedName }) {
-                return suggestedName
+        try {
+            val suggestedNames = runBlocking { openAiClient.askGptForMethodNames(methodBody) }
+            suggestedNames.forEach { suggestedName ->
+                if (methods.none { it.nameAsString == suggestedName }) {
+                    return suggestedName
+                }
             }
+        } catch (e: Exception) {
+            println("Failed to get method name from GPT-3")
         }
 
 
@@ -40,9 +44,9 @@ class MethodCreator(private val cu: CompilationUnit) {
         val genericMethod = methodWithSmallestBody.clone()
         genericMethod.setName(genericMethodName)
         genericMethod.annotations?.clear() // Remove annotations
+        genericMethod.javadocComment.ifPresent { it.remove() }
+        genericMethod.setPrivate(true) // Make the method private
 
-        println("Created generic method: $genericMethodName")
-        println(genericMethodName)
 
         // Replace the cloned code in each method with a call to the new generic method.
         cloneGroup.forEach { method ->
@@ -59,22 +63,17 @@ class MethodCreator(private val cu: CompilationUnit) {
             } else {
                 method.body.ifPresent { it.addStatement(methodCall) }
             }
-
-            println("Replaced method body with call to generic method in method: ${method.nameAsString}")
         }
 
         // Add the new generic method to the appropriate class or enum in the CompilationUnit.
-        val targetClassOrInterface = cu.findFirst(ClassOrInterfaceDeclaration::class.java).orElse(null)
-        val targetEnum = cu.findFirst(EnumDeclaration::class.java).orElse(null)
+        val targetClassOrInterface = methodWithSmallestBody.findAncestor(ClassOrInterfaceDeclaration::class.java).orElse(null)
+        val targetEnum = methodWithSmallestBody.findAncestor(EnumDeclaration::class.java).orElse(null)
 
         when {
             targetClassOrInterface != null -> targetClassOrInterface.addMember(genericMethod)
             targetEnum != null -> targetEnum.addMember(genericMethod)
             else -> throw IllegalStateException("No class, interface or enum found in the compilation unit")
         }
-
-        println("Added generic method to the target class or enum: ${targetClassOrInterface?.nameAsString ?: targetEnum?.nameAsString}")
-
 
         return genericMethod
     }

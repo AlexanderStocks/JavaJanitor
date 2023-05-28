@@ -60,7 +60,6 @@ object Utils {
 
 
             else -> {
-                println("Unsupported event type: $eventType")
                 null
             }
         }
@@ -88,10 +87,6 @@ object Utils {
         }
         zip.close()
         zipFile.deleteRecursively()
-    }
-
-    fun javaFileToBase64(file: File): String {
-        return Base64.getEncoder().encodeToString(file.readBytes())
     }
 
     fun getReposWithIds(payload: Any): List<Pair<Repository, Int>> = when (payload) {

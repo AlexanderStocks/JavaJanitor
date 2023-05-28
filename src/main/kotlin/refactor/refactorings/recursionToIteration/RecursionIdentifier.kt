@@ -40,7 +40,6 @@ class RecursionIdentifier {
         if (recursionTypes.isEmpty()) {
             recursionTypes.add(RecursionType.UNKNOWN)
         }
-        println("Recursion types: $recursionTypes")
         return recursionTypes
     }
 

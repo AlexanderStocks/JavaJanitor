@@ -22,9 +22,9 @@ fun main() {
 
     println("Running tests after modifying the code to make the test pass...")
     val testResultsPass = testRunner.runTests()
-    testResultsPass.forEach { result ->
-        println("Test: ${result.testName}, Result: ${if (result.isSuccessful) "PASSED" else "FAILED"}")
-    }
+//    testResultsPass.forEach { result ->
+//        println("Test: ${result.testName}, Result: ${if (result.isSuccessful) "PASSED" else "FAILED"}")
+//    }
 
     // Modify the code to make the test fail
     val sourceCodeFail = """
@@ -40,10 +40,7 @@ fun main() {
 
     println("\nRunning tests after modifying the code to make the test fail...")
     try {
-        val testResultsFail = testRunner.runTests()
-        testResultsFail.forEach { result ->
-            println("Test: ${result.testName}, Result: ${if (result.isSuccessful) "PASSED" else "FAILED"}")
-        }
+        testRunner.runTests()
     } catch (e: Exception) {
         println("An exception occurred while running the tests: ${e.message}")
         // Handle the exception or report the test failure as needed
