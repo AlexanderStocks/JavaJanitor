@@ -1,11 +1,15 @@
 class Type1Test {
 
     int add1() {
-        return genericMethod0();
+        int a = 1;
+        int b = 2;
+        return a + b;
     }
 
     int add2() {
-        return genericMethod0();
+        int b = 2;
+        int a = 1;
+        return b + a;
     }
 
     public void test3() {
@@ -13,8 +17,6 @@ class Type1Test {
     }
 
     int genericMethod0() {
-        int a = 1;
-        int b = 2;
-        return a + b;
+
     }
 }

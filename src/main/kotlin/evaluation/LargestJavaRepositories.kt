@@ -11,7 +11,7 @@ fun main() {
     val randomIndices = (0..19).shuffled()
 
     // start from 1MB (1024KB), increment by 1MB for each request
-    for (size in 1024..10240 step 1024) {
+    for (size in 1024..20480 step 1024) {
         val request = Request.Builder()
             .url("https://api.github.com/search/repositories?q=language:java+size:$size..${size+1023}&sort=stars&order=desc")
             .build()

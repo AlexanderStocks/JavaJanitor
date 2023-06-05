@@ -10,7 +10,7 @@ import com.github.javaparser.ast.stmt.ReturnStmt
 import com.github.javaparser.ast.type.VoidType
 import kotlinx.coroutines.runBlocking
 
-class MethodCreator(private val cu: CompilationUnit) {
+class MethodCreator(cu: CompilationUnit) {
     private var methodIndex = 0
     private val methods = cu.findAll(MethodDeclaration::class.java)
     private val openAiClient = OpenAiClient()
@@ -46,6 +46,9 @@ class MethodCreator(private val cu: CompilationUnit) {
         genericMethod.annotations?.clear() // Remove annotations
         genericMethod.javadocComment.ifPresent { it.remove() }
         genericMethod.setPrivate(true) // Make the method private
+        genericMethod.setProtected(false)
+        genericMethod.setPublic(false)
+
 
 
         // Replace the cloned code in each method with a call to the new generic method.

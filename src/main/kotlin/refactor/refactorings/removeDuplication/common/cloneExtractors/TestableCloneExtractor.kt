@@ -63,8 +63,6 @@ class TestableCloneExtractor : CloneExtractor() {
         val processingTime = endTime.toEpochMilli() - timeNow.toEpochMilli()
         println("Succesfull processing time: $processingTime ms")
 
-
-
         return result
     }
 
